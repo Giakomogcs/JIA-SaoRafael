@@ -1,0 +1,117 @@
+{
+  "name": "SãoRafael-Chat-GET-History",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "saorafael-history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "65bd2f54-6963-4d0f-bc84-3cc247fd1291",
+      "name": "When called - GET history",
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "40010dce-b754-4779-8c5d-d2e32bc2dc91"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Substituindo .item por .first() para acessar os dados do primeiro item\nconst sessionId = $input.first().json.query?.sessionId || $input.first().json.queryString?.sessionId;\n\nif (!sessionId) {\n  throw new Error('sessionId query parameter is required');\n}\n\nreturn { sessionId };"
+      },
+      "id": "4985cb19-8962-40cb-856f-8240a9ac0948",
+      "name": "Extract Session ID",
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * \nFROM aspiramaq_chat_message \nWHERE session_id = '{{ $json.sessionId }}' \nORDER BY id ASC;",
+        "options": {}
+      },
+      "id": "462dc58b-d8b9-4c13-b259-da6a41782f14",
+      "name": "Get History from DB",
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "a60e9477-daa6-4855-abbf-66bf5b453828",
+      "name": "Return History",
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - GET history": {
+      "main": [
+        [
+          {
+            "node": "Extract Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session ID": {
+      "main": [
+        [
+          {
+            "node": "Get History from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History from DB": {
+      "main": [
+        [
+          {
+            "node": "Return History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d03445fb-205e-46d0-9458-7e2241e70973",
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  },
+  "id": "Gs4JPdHMXa37tPIL",
+  "tags": []
+}

@@ -1,0 +1,93 @@
+{
+  "name": "SãoRafael-Chat-GET-Sessions",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "saorafael-sessions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e34c05ba-3929-4f53-ac97-7ab37797b101",
+      "name": "When called - GET sessions",
+      "position": [
+        496,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "d433b917-387e-4aff-adeb-78cd81421956"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  session_id, \n  MIN(created_at) as data_inicio,\n  (SELECT message->>'content' -- Extrai apenas o texto da mensagem\n   FROM aspiramaq_chat_message aspiramaq_cm2 \n   WHERE aspiramaq_cm2.session_id = aspiramaq_cm.session_id \n   AND aspiramaq_cm2.message->>'type' = 'human' -- Filtra dentro do JSON da coluna 'message'\n   ORDER BY id DESC LIMIT 1) as titulo\nFROM aspiramaq_chat_message aspiramaq_cm\nGROUP BY session_id\nORDER BY data_inicio DESC;",
+        "options": {}
+      },
+      "id": "d195685f-a582-4650-8934-0582694ecbf7",
+      "name": "List Sessions from DB",
+      "position": [
+        720,
+        0
+      ],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "542b48f5-c6ee-406b-83d9-33954f1a2f62",
+      "name": "Return Sessions",
+      "position": [
+        944,
+        0
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - GET sessions": {
+      "main": [
+        [
+          {
+            "node": "List Sessions from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Sessions from DB": {
+      "main": [
+        [
+          {
+            "node": "Return Sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "edfc8e78-b2f6-40d6-9ece-b80f7417c50a",
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  },
+  "id": "SBebyME7HoyDZVxK",
+  "tags": []
+}

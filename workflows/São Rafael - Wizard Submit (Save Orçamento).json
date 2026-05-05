@@ -1,0 +1,231 @@
+{
+  "name": "São Rafael - Wizard Submit (Save Orçamento)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "saorafael-wizard-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "02b1f78c-382a-4f04-b0a8-4f542d0a0c5f",
+      "name": "Webhook Submit1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        -144
+      ],
+      "webhookId": "ws-submit-001"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "formData",
+              "value": "={{ JSON.stringify($json.body?.formData || $json.formData || {}) }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "sessionId",
+              "value": "={{ $json.body?.sessionId || $json.sessionId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "submittedAt",
+              "value": "={{ $json.body?.submittedAt || $json.submittedAt || $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "s4",
+              "name": "submittedBy",
+              "value": "={{ $json.body?.submittedBy || $json.submittedBy || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "s5",
+              "name": "userRole",
+              "value": "={{ $json.body?.userRole || $json.userRole || 'user' }}",
+              "type": "string"
+            },
+            {
+              "id": "s6",
+              "name": "userId",
+              "value": "={{ $json.headers?.['x-user-id'] || $json.body?.userId || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99aa7632-d002-4d13-a824-5e55be6e5734",
+      "name": "Extract Submission Data1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1360,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Generate protocol number: SR-YYYYMM-NNNN\nWITH next_seq AS (\n  SELECT COALESCE(MAX(\n    CAST(SUBSTRING(protocol FROM '-([0-9]+)$') AS INTEGER)\n  ), 0) + 1 AS seq\n  FROM saorafael_wizard_submission\n  WHERE protocol LIKE 'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-%'\n)\nINSERT INTO saorafael_wizard_submission (\n  session_id,\n  user_id,\n  form_data,\n  status,\n  protocol,\n  submitted_at,\n  processed_at,\n  notes\n)\nSELECT\n  $1,\n  CASE WHEN $2 IS NULL OR TRIM($2) = '' OR LOWER(TRIM($2)) = 'null' THEN NULL ELSE TRIM($2)::UUID END,\n  $3::JSONB,\n  'submitted',\n  'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-' || LPAD(next_seq.seq::TEXT, 4, '0'),\n  $4::TIMESTAMPTZ,\n  NOW(),\n  $5\nFROM next_seq\nON CONFLICT (session_id) DO UPDATE SET\n  form_data = EXCLUDED.form_data,\n  submitted_at = EXCLUDED.submitted_at,\n  processed_at = NOW(),\n  status = 'submitted',\n  notes = EXCLUDED.notes\nRETURNING id, protocol, session_id, status, submitted_at, processed_at;",
+        "options": {
+          "queryReplacement": "={{ [$json.sessionId, $json.userId, $json.formData, $json.submittedAt, 'Enviado por: ' + $json.submittedBy + ' (' + $json.userRole + ')'] }}"
+        }
+      },
+      "id": "05221d66-89aa-4c58-a816-2f4d60a4c65a",
+      "name": "Insert/Update Submission1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -1120,
+        -144
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-result",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e09c40c2-2251-47c3-9e3d-fe8c969f2258",
+      "name": "Insert OK?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, protocol: $json.protocol, id: $json.id, status: $json.status, submitted_at: $json.submitted_at, message: 'Orçamento registrado com sucesso. Protocolo: ' + $json.protocol }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d7e64011-1259-4772-81e1-341d5a2dc988",
+      "name": "Respond Success1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error?.message || $json.message || 'Failed to save submission', message: 'Erro ao salvar orçamento. ' + ($json.error?.message || $json.message || 'Tente novamente.') }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "dbf93349-24da-4ba3-a992-9b2ecc6129ec",
+      "name": "Respond Error1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Submit1": {
+      "main": [
+        [
+          {
+            "node": "Extract Submission Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Submission Data1": {
+      "main": [
+        [
+          {
+            "node": "Insert/Update Submission1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert/Update Submission1": {
+      "main": [
+        [
+          {
+            "node": "Insert OK?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert OK?1": {
+      "main": [
+        [
+          {
+            "node": "Respond Success1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "00349ccd-4062-4c93-bba2-8eddf7ee8730",
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  },
+  "id": "GhTGQeFDVvvFiDqB",
+  "tags": []
+}

@@ -1,0 +1,43 @@
+# =========================
+# São Rafael - .gitignore
+# =========================
+
+# --- Planilhas e Excel ---
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+
+# --- PDFs (documentação extraída da planilha) ---
+*.pdf
+
+# --- OS files ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Editor/IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Node (caso use futuramente) ---
+node_modules/
+package-lock.json
+
+# --- Env / Secrets ---
+.env
+.env.*
+*.key
+*.pem
+
+# --- Logs ---
+*.log
+
+# --- Temp ---
+*.tmp
+*.bak
+*.orig

@@ -1,0 +1,1923 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>São Rafael - Wizard V2</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      (function () {
+        // Iframe polyfills
+        if (typeof window.localStorage === 'undefined') {
+          const store = {};
+          window.localStorage = { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; }, clear: () => { Object.keys(store).forEach(k => delete store[k]); } };
+        }
+      })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      function buildAuthStorage() {
+        const memStore = {};
+        return {
+          getItem: (key) => { try { return localStorage.getItem(key); } catch { return memStore[key] || null; } },
+          setItem: (key, val) => { try { localStorage.setItem(key, val); } catch {} memStore[key] = val; },
+          removeItem: (key) => { try { localStorage.removeItem(key); } catch {} delete memStore[key]; },
+        };
+      }
+      function diagnoseAuthStorage(storage, key) { /* no-op in v2 */ }
+      window.buildAuthStorage = buildAuthStorage;
+    </script>
+    <style>
+      /* ============================================
+         DESIGN SYSTEM — São Rafael Wizard V2
+         ============================================ */
+      :root {
+        --color-primary: #d82444;
+        --color-primary-dark: #b31d38;
+        --color-primary-light: #ff4d6a;
+        --color-secondary: #1a1a2e;
+        --color-accent: #16213e;
+        --color-success: #10b981;
+        --color-warning: #f59e0b;
+        --color-error: #ef4444;
+        --color-info: #2196f3;
+        --bg-body: #f8fafc;
+        --bg-card: #ffffff;
+        --bg-input: #ffffff;
+        --bg-tertiary: #f1f5f9;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --border-focus: #d82444;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 16px;
+        --radius-xl: 20px;
+        --transition: 0.2s ease;
+      }
+
+      [data-theme="dark"] {
+        --bg-body: #0f172a;
+        --bg-card: #1e293b;
+        --bg-input: #1e293b;
+        --bg-tertiary: #1a2332;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --border-color: #334155;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+        --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-body);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ===== LOGIN ===== */
+      .login-overlay {
+        position: fixed; inset: 0; background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-accent) 100%);
+        display: flex; align-items: center; justify-content: center; z-index: 99999;
+      }
+      .login-box {
+        background: var(--bg-card); border-radius: var(--radius-xl); padding: 40px; width: 90%; max-width: 400px; box-shadow: var(--shadow-lg);
+      }
+      .login-title { font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 24px; color: var(--color-primary); }
+      .login-input {
+        width: 100%; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: var(--radius-md);
+        font-size: 14px; background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px; transition: var(--transition);
+      }
+      .login-input:focus { outline: none; border-color: var(--border-focus); }
+      .login-btn {
+        width: 100%; padding: 14px; background: var(--color-primary); color: white; border: none;
+        border-radius: var(--radius-md); font-size: 15px; font-weight: 700; cursor: pointer; transition: var(--transition);
+      }
+      .login-btn:hover { background: var(--color-primary-dark); }
+      .err-msg { color: var(--color-error); font-size: 12px; text-align: center; margin-top: 8px; display: none; }
+
+      /* ===== APP LAYOUT ===== */
+      .app-container { display: flex; flex-direction: column; height: 100vh; }
+      .app-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 24px; background: var(--bg-card); border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm); z-index: 100;
+      }
+      .header-left { display: flex; align-items: center; gap: 12px; }
+      .header-right { display: flex; align-items: center; gap: 8px; }
+      .brand { display: flex; align-items: center; gap: 8px; }
+      .brand span { font-size: 18px; font-weight: 800; color: var(--color-primary); }
+      .header-tag {
+        padding: 4px 10px; background: rgba(216,36,68,0.1); color: var(--color-primary);
+        border-radius: 20px; font-size: 11px; font-weight: 700;
+      }
+      .header-btn {
+        padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
+        background: transparent; color: var(--text-primary); font-size: 12px; font-weight: 600;
+        cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 6px;
+      }
+      .header-btn:hover { background: var(--bg-tertiary); }
+      .header-btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+
+      .connection-badge {
+        display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+        border-radius: 20px; font-size: 11px; font-weight: 600;
+      }
+      .connection-badge.online { background: rgba(16,185,129,0.1); color: var(--color-success); }
+      .connection-badge.offline { background: rgba(239,68,68,0.1); color: var(--color-error); }
+      .connection-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+      /* ===== MAIN CONTENT ===== */
+      .main-content { display: flex; flex: 1; overflow: hidden; }
+      .wizard-area { flex: 1; overflow-y: auto; padding: 24px; }
+
+      /* ===== CHAT PANEL ===== */
+      .chat-panel {
+        width: 0; overflow: hidden; border-left: 1px solid var(--border-color);
+        background: var(--bg-card); transition: width 0.3s ease; display: flex; flex-direction: column;
+      }
+      .chat-panel.open { width: 380px; }
+      .chat-panel-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 16px; border-bottom: 1px solid var(--border-color);
+      }
+      .chat-panel-header h3 { font-size: 14px; font-weight: 700; }
+      #chatMessages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+      .chat-input-area { padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
+      .chat-input-area input {
+        flex: 1; padding: 10px 14px; border: 2px solid var(--border-color); border-radius: var(--radius-md);
+        font-size: 13px; background: var(--bg-input); color: var(--text-primary);
+      }
+      .chat-input-area input:focus { outline: none; border-color: var(--border-focus); }
+      .chat-input-area button {
+        padding: 10px 16px; background: var(--color-primary); color: white; border: none;
+        border-radius: var(--radius-md); font-weight: 700; cursor: pointer;
+      }
+      .chat-msg { padding: 10px 14px; border-radius: var(--radius-md); max-width: 90%; font-size: 13px; line-height: 1.5; }
+      .chat-msg.user { align-self: flex-end; background: var(--color-primary); color: white; }
+      .chat-msg.assistant { align-self: flex-start; background: var(--bg-tertiary); }
+      .chat-msg.system { align-self: center; background: rgba(33,150,243,0.1); color: var(--color-info); font-size: 12px; text-align: center; }
+
+      /* ===== WIZARD CONTAINER ===== */
+      .wizard-container { max-width: 900px; margin: 0 auto; }
+
+      /* ===== STEP INDICATOR ===== */
+      .step-indicator { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
+      .step-dot {
+        width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 700; border: 2px solid var(--border-color); color: var(--text-muted);
+        cursor: pointer; transition: var(--transition);
+      }
+      .step-dot.active { background: var(--color-primary); color: white; border-color: var(--color-primary); transform: scale(1.1); }
+      .step-dot.completed { background: var(--color-success); color: white; border-color: var(--color-success); }
+      .step-line { width: 20px; height: 2px; background: var(--border-color); }
+      .step-line.completed { background: var(--color-success); }
+
+      /* ===== STEP CARD ===== */
+      .step-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 32px; box-shadow: var(--shadow-md); }
+      .step-header { margin-bottom: 24px; }
+      .step-header h2 { font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+      .step-header p { font-size: 13px; color: var(--text-secondary); }
+
+      /* ===== FORM FIELDS ===== */
+      .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+      .form-grid .full-width { grid-column: 1 / -1; }
+      .form-group { display: flex; flex-direction: column; gap: 6px; }
+      .form-group label { font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+      .form-group label .required { color: var(--color-error); }
+      .form-group label .field-tag {
+        font-size: 9px; padding: 2px 6px; background: rgba(216,36,68,0.1); color: var(--color-primary);
+        border-radius: 4px; font-weight: 700; text-transform: uppercase;
+      }
+      .form-input, .form-select, .form-textarea {
+        padding: 10px 14px; border: 2px solid var(--border-color); border-radius: var(--radius-md);
+        font-size: 13px; background: var(--bg-input); color: var(--text-primary); transition: var(--transition);
+        width: 100%;
+      }
+      .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--border-focus); }
+      .form-input.error, .form-select.error, .form-textarea.error { border-color: var(--color-error); }
+      .form-textarea { min-height: 80px; resize: vertical; }
+      .field-error { font-size: 11px; color: var(--color-error); display: none; }
+      .field-error.show { display: block; }
+      .field-hint { font-size: 11px; color: var(--text-muted); }
+
+      /* ===== PRODUCT CARDS ===== */
+      .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+      .product-card {
+        background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius-lg);
+        padding: 24px; text-align: center; cursor: pointer; transition: var(--transition);
+        display: flex; flex-direction: column; align-items: center; gap: 12px;
+      }
+      .product-card:hover { border-color: var(--color-primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+      .product-card.selected { border-color: var(--color-primary); background: rgba(216,36,68,0.05); box-shadow: 0 0 0 3px rgba(216,36,68,0.15); }
+      .product-card-icon { font-size: 36px; }
+      .product-card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+      .product-card-desc { font-size: 11px; color: var(--text-secondary); }
+
+      /* ===== CLIENT FINDER ===== */
+      .client-search-box {
+        position: relative; display: flex; gap: 8px; margin-bottom: 16px;
+      }
+      .client-search-box input { flex: 1; }
+      .client-results { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+      .client-result-card {
+        display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+        border: 2px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; transition: var(--transition);
+      }
+      .client-result-card:hover { border-color: var(--color-primary); background: rgba(216,36,68,0.02); }
+      .client-result-card.selected { border-color: var(--color-success); background: rgba(16,185,129,0.05); }
+      .client-result-info h4 { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+      .client-result-info p { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+      .client-result-badge { font-size: 10px; padding: 4px 8px; background: rgba(33,150,243,0.1); color: var(--color-info); border-radius: 12px; font-weight: 600; }
+
+      .client-form-section {
+        border: 2px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; margin-top: 16px;
+      }
+      .client-form-section h4 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); }
+
+      /* ===== SVG DIMENSION VIEWER ===== */
+      .dimension-viewer { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
+      .dimension-svg-container {
+        background: var(--bg-tertiary); border-radius: var(--radius-md); padding: 16px;
+        display: flex; align-items: center; justify-content: center; min-height: 280px;
+      }
+      .dimension-svg-container svg { width: 100%; height: auto; max-height: 300px; }
+      .dimension-inputs { display: flex; flex-direction: column; gap: 12px; }
+      .dimension-calc {
+        background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2); border-radius: var(--radius-md);
+        padding: 12px; margin-top: 12px;
+      }
+      .dimension-calc h5 { font-size: 11px; font-weight: 700; color: var(--color-success); margin-bottom: 8px; text-transform: uppercase; }
+      .dimension-calc .calc-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
+      .dimension-calc .calc-row .label { color: var(--text-secondary); }
+      .dimension-calc .calc-row .value { font-weight: 700; color: var(--text-primary); }
+
+      /* ===== DOOR PLACEMENT ===== */
+      .door-placement-container { display: grid; grid-template-columns: 1fr; gap: 16px; }
+      .door-svg-container {
+        background: var(--bg-tertiary); border-radius: var(--radius-md); padding: 16px;
+        min-height: 300px; position: relative;
+      }
+      .door-svg-container svg { width: 100%; height: auto; }
+      .door-wall { cursor: pointer; transition: fill 0.2s; }
+      .door-wall:hover { fill: rgba(216,36,68,0.15) !important; }
+      .door-list { display: flex; flex-direction: column; gap: 8px; }
+      .door-item {
+        display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
+        background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color);
+      }
+      .door-item-info { font-size: 12px; color: var(--text-primary); }
+      .door-item-actions { display: flex; gap: 6px; }
+      .door-item-actions button {
+        padding: 4px 8px; font-size: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;
+      }
+
+      /* ===== OPTIONALS GRID ===== */
+      .optionals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+      .optional-card {
+        border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;
+        text-align: center; cursor: pointer; transition: var(--transition);
+      }
+      .optional-card:hover { border-color: var(--color-primary); }
+      .optional-card.active { border-color: var(--color-success); background: rgba(16,185,129,0.05); }
+      .optional-card-icon { font-size: 24px; margin-bottom: 8px; }
+      .optional-card-title { font-size: 11px; font-weight: 700; color: var(--text-primary); }
+
+      /* ===== REVIEW SECTION ===== */
+      .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+      .review-section {
+        background: var(--bg-tertiary); border-radius: var(--radius-md); padding: 16px; border: 1px solid var(--border-color);
+      }
+      .review-section h4 { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+      .review-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+      .review-row .rl { color: var(--text-secondary); }
+      .review-row .rv { font-weight: 600; color: var(--text-primary); }
+
+      /* ===== WIZARD NAV ===== */
+      .wizard-nav { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
+      .btn-wizard {
+        padding: 12px 24px; border-radius: var(--radius-md); font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: var(--transition); border: none;
+      }
+      .btn-prev { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+      .btn-prev:hover { background: var(--border-color); }
+      .btn-next { background: var(--color-primary); color: white; }
+      .btn-next:hover { background: var(--color-primary-dark); }
+      .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-submit-style { background: var(--color-success); }
+      .btn-submit-style:hover { background: #059669; }
+
+      /* ===== HISTORY MODAL ===== */
+      .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex;
+        align-items: center; justify-content: center; z-index: 10000;
+      }
+      .modal-content {
+        background: var(--bg-card); border-radius: var(--radius-xl); padding: 24px;
+        width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+      }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .modal-header h3 { font-size: 16px; font-weight: 800; }
+      .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+      .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+      .sidebar {
+        position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-card);
+        z-index: 9999; transition: left 0.3s; box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+      }
+      .sidebar.open { left: 0; }
+      .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+      .sidebar-user { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px; }
+      .sidebar-user-avatar {
+        width: 36px; height: 36px; border-radius: 50%; background: var(--color-primary); color: white;
+        display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+      }
+      .sidebar-user-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+      .sidebar-user-role { font-size: 11px; color: var(--text-secondary); }
+      .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+      .sidebar-nav-item {
+        display: flex; align-items: center; gap: 10px; padding: 12px 20px;
+        font-size: 13px; color: var(--text-primary); cursor: pointer; transition: var(--transition);
+      }
+      .sidebar-nav-item:hover { background: var(--bg-tertiary); }
+      .sidebar-nav-item.danger { color: var(--color-error); }
+      .sidebar-nav-divider { height: 1px; background: var(--border-color); margin: 8px 16px; }
+
+      /* ===== DYNAMIC ARRAY ===== */
+      .array-section { margin-top: 16px; }
+      .array-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .array-header h4 { font-size: 14px; font-weight: 700; }
+      .btn-add-item {
+        padding: 8px 14px; background: var(--color-info); color: white; border: none;
+        border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer;
+      }
+      .btn-add-item:hover { opacity: 0.9; }
+      .array-item { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px; }
+      .array-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .array-item-header span { font-size: 13px; font-weight: 700; color: var(--color-primary); }
+      .btn-remove-item { padding: 4px 10px; background: var(--color-error); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; }
+
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 900px) {
+        .chat-panel.open { width: 100%; position: absolute; right: 0; top: 0; bottom: 0; z-index: 200; }
+        .dimension-viewer { grid-template-columns: 1fr; }
+        .product-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      }
+      @media (max-width: 480px) {
+        .wizard-area { padding: 12px; }
+        .step-card { padding: 20px; }
+        .form-grid { grid-template-columns: 1fr; }
+      }
+
+      /* ===== SCROLLBAR ===== */
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+      /* ===== CREATABLE SELECT ===== */
+      .creatable-container { position: relative; }
+      .creatable-input {
+        width: 100%; padding: 10px 14px; border: 2px solid var(--border-color); border-radius: var(--radius-md);
+        font-size: 13px; background: var(--bg-input); color: var(--text-primary); transition: var(--transition);
+      }
+      .creatable-input:focus { outline: none; border-color: var(--border-focus); }
+      .creatable-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card);
+        border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-top: 4px;
+        max-height: 180px; overflow-y: auto; z-index: 50; display: none; box-shadow: var(--shadow-md);
+      }
+      .creatable-dropdown.open { display: block; }
+      .creatable-option { padding: 8px 14px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
+      .creatable-option:hover { background: var(--bg-tertiary); }
+      .creatable-option.selected { background: rgba(216,36,68,0.08); font-weight: 600; }
+
+      /* ===== IBGE SELECT ===== */
+      .ibge-container { display: grid; grid-template-columns: 100px 1fr; gap: 8px; }
+      .ibge-container .form-select { width: 100%; }
+    </style>
+  </head>
+
+  <body>
+    <!-- LOGIN OVERLAY -->
+    <div class="login-overlay" id="loginOverlay">
+      <div class="login-box">
+        <h1 class="login-title">🏢 São Rafael</h1>
+        <p style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Wizard de Orçamento V2</p>
+        <form id="loginForm">
+          <input type="email" class="login-input" id="usernameInput" placeholder="E-mail" required autocomplete="email" />
+          <input type="password" class="login-input" id="passwordInput" placeholder="Senha" required autocomplete="current-password" />
+          <button type="submit" class="login-btn">Entrar</button>
+          <p class="err-msg" id="loginError"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div class="app-container" id="appContainer" style="display: none">
+      <!-- SIDEBAR -->
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="brand"><span>São Rafael</span></div>
+          <button id="sidebarCloseBtn" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:18px;">✕</button>
+        </div>
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="sidebarAvatar">U</div>
+          <div>
+            <div class="sidebar-user-name" id="sidebarUserName">Usuário</div>
+            <div class="sidebar-user-role" id="sidebarUserRole">vendedor</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-item" id="navEditProfile"><i data-lucide="user" style="width:16px;height:16px;"></i> Editar Perfil</div>
+          <div class="sidebar-nav-item" id="navSubmissions"><i data-lucide="file-text" style="width:16px;height:16px;"></i> Meus Orçamentos</div>
+          <div class="sidebar-nav-item" id="navTheme"><i data-lucide="moon" id="navThemeIcon" style="width:16px;height:16px;"></i> <span id="navThemeLabel">Tema Escuro</span></div>
+          <div class="sidebar-nav-divider"></div>
+          <div class="sidebar-nav-item" id="navUsers" style="display:none;"><i data-lucide="users" style="width:16px;height:16px;"></i> Gerenciar Usuários</div>
+          <div class="sidebar-nav-item" id="navResetForm"><i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Limpar Formulário</div>
+          <div class="sidebar-nav-divider"></div>
+          <div class="sidebar-nav-item danger" id="navLogout"><i data-lucide="log-out" style="width:16px;height:16px;"></i> Sair</div>
+        </nav>
+      </aside>
+
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="header-btn" id="sidebarOpenBtn"><i data-lucide="menu" style="width:16px;height:16px;"></i></button>
+          <div class="brand"><span>São Rafael</span></div>
+          <span class="header-tag">Wizard V2</span>
+        </div>
+        <div class="header-right">
+          <div class="connection-badge online" id="connectionBadge">
+            <span class="connection-dot"></span>
+            <span id="connectionText">Online</span>
+          </div>
+          <button class="header-btn" id="chatToggleBtn"><i data-lucide="message-circle" style="width:16px;height:16px;"></i> Chat</button>
+        </div>
+      </header>
+
+      <!-- MAIN -->
+      <div class="main-content">
+        <div class="wizard-area" id="wizardArea">
+          <div class="wizard-container" id="wizardContainer">
+            <!-- Dynamic content rendered by WizardEngine -->
+          </div>
+        </div>
+
+        <!-- CHAT PANEL -->
+        <div class="chat-panel" id="chatPanel">
+          <div class="chat-panel-header">
+            <h3>💬 Assistente IA</h3>
+            <button class="header-btn" id="chatCloseBtn"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>
+          <div id="chatMessages"></div>
+          <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Pergunte algo..." />
+            <button id="chatSendBtn">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const API_BASE = "https://longflatworm-n8n.cloudfy.live/webhook";
+const AGENT_URL = `${API_BASE}/saorafael-AgentRag`;
+const WIZARD_SUBMIT_URL = `${API_BASE}/saorafael-wizard-submit`;
+const HEALTH_URL = `${API_BASE}/saorafael_health`;
+const SESSIONS_URL = `${API_BASE}/saorafael-sessions`;
+const HISTORY_URL = `${API_BASE}/saorafael-history`;
+const DELETE_SESSION_URL = `${API_BASE}/saorafael-session`;
+
+const SUPABASE_URL = 'https://longflatworm-supabase.cloudfy.live';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzczNjY1NzE2LCJleHAiOjE4MDUyMDE3MTZ9.nM55mAkSiyvvaIoUACEw4pY4GSJVfvrMX7b1q5JVwyg';
+const AUTH_STORAGE_KEY = 'saorafael-auth-v2';
+const COMPANY_NAME = 'saorafael';
+
+const authStorage = buildAuthStorage();
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { storage: authStorage, storageKey: AUTH_STORAGE_KEY, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, flowType: 'implicit', lock: (_n, _t, fn) => fn() }
+});
+
+let currentUser = null;
+let currentSessionId = null;
+let appStarted = false;
+
+// ============================================
+// PRODUCT TYPES & STEP MODULES (V2 Core)
+// ============================================
+const PRODUCT_TYPES = {
+  camara_sistema: {
+    id: 'camara_sistema',
+    name: 'Câmara com Sistema',
+    icon: '🧊',
+    description: 'Câmara frigorífica completa com sistema de refrigeração',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'opcionais', 'refrigeracao', 'instalacao', 'revisao'],
+  },
+  walkin_cooler: {
+    id: 'walkin_cooler',
+    name: 'Walk In Cooler',
+    icon: '❄️',
+    description: 'Temp 0~10°C, compressor hermético',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'opcionais', 'refrigeracao', 'instalacao', 'revisao'],
+  },
+  walkin_freezer: {
+    id: 'walkin_freezer',
+    name: 'Walk In Freezer',
+    icon: '🥶',
+    description: 'Temp -25~-15°C, degelo obrigatório',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'opcionais', 'refrigeracao', 'instalacao', 'revisao'],
+  },
+  camara_modular: {
+    id: 'camara_modular',
+    name: 'Câmara Modular',
+    icon: '📦',
+    description: 'Dimensões por módulos padronizados',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'opcionais', 'refrigeracao', 'instalacao', 'revisao'],
+  },
+  antecamara: {
+    id: 'antecamara',
+    name: 'Antecâmara',
+    icon: '🚪',
+    description: 'Sem refrigeração própria, dupla porta',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'opcionais', 'instalacao', 'revisao'],
+  },
+  tunel_congelamento: {
+    id: 'tunel_congelamento',
+    name: 'Túnel de Congelamento',
+    icon: '🌀',
+    description: 'Capacidade produtiva, esteiras/carros',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'portas_visual', 'capacidade_produtiva', 'refrigeracao_industrial', 'opcionais', 'instalacao', 'revisao'],
+  },
+  sala_climatizada: {
+    id: 'sala_climatizada',
+    name: 'Sala Climatizada',
+    icon: '🌡️',
+    description: 'HVAC, sem portas isotérmicas',
+    steps: ['cliente', 'produto', 'comercial', 'dimensoes_visual', 'hvac', 'opcionais', 'instalacao', 'revisao'],
+  },
+};
+
+const STEP_MODULES = {
+  cliente: {
+    id: 'cliente',
+    title: 'Identificação do Cliente',
+    description: 'Busque um cliente existente ou cadastre um novo.',
+    component: 'StepCliente',
+  },
+  produto: {
+    id: 'produto',
+    title: 'Tipo de Produto',
+    description: 'Selecione o tipo de equipamento para este orçamento.',
+    component: 'StepProduto',
+  },
+  comercial: {
+    id: 'comercial',
+    title: 'Dados Comerciais',
+    description: 'Identificação do representante, origem do contato e comissões.',
+    component: 'StepComercial',
+    fields: {
+      representante: { label: 'Representante', type: 'creatable', required: true, options: [], tag: 'PLANILHA', dynamic: true },
+      origem_contato: { label: 'Origem do Contato', type: 'creatable', required: true, options: ['Indicação','Site','Feira','Telefone','WhatsApp','Visita','Instagram','Google','LinkedIn','E-mail Marketing'], tag: 'PLANILHA' },
+      comissao_representante: { label: 'Comissão Representante (%)', type: 'number', required: true, min: 0, max: 15, step: 0.5, default: 5, tag: 'PLANILHA' },
+      comissao_vendedor: { label: 'Comissão Vendedor (%)', type: 'number', required: false, min: 0, max: 10, step: 0.5, default: 3 },
+      observacoes_comerciais: { label: 'Observações Comerciais', type: 'textarea', required: false, maxLength: 500 },
+    },
+  },
+  dimensoes_visual: {
+    id: 'dimensoes_visual',
+    title: 'Dimensões e Paredes',
+    description: 'Configure as dimensões externas. As internas são calculadas automaticamente.',
+    component: 'StepDimensoesVisual',
+    fields: {
+      comprimento_ext: { label: 'Comprimento Externo (m)', type: 'number', required: true, min: 1, max: 30, step: 0.01, tag: 'PLANILHA' },
+      largura_ext: { label: 'Largura Externa (m)', type: 'number', required: true, min: 1, max: 20, step: 0.01, tag: 'PLANILHA' },
+      altura_ext: { label: 'Altura Externa (m)', type: 'number', required: true, min: 2, max: 8, step: 0.01, tag: 'PLANILHA' },
+      espessura_painel: { label: 'Espessura do Painel (mm)', type: 'select', required: true, options: ['50','75','100','125','150','175','200'], tag: 'PLANILHA' },
+      tipo_isolamento: { label: 'Tipo de Isolamento', type: 'select', required: true, options: ['PU (Poliuretano)','PIR (Poliisocianurato)'], tag: 'PLANILHA' },
+      revestimento_interno: { label: 'Revestimento Interno', type: 'select', required: true, options: ['Galvalume','Aço Inox 430','Aço Inox 304','Alumínio Liso','Alumínio Estucado'], tag: 'PLANILHA' },
+      revestimento_externo: { label: 'Revestimento Externo', type: 'select', required: true, options: ['Galvalume','Aço Inox 430','Aço Inox 304','Alumínio Liso','Alumínio Estucado'], tag: 'PLANILHA' },
+      piso: { label: 'Piso da Câmara', type: 'select', required: true, options: ['Sem Piso (sobre piso existente)','Com Piso Isolado (50mm)','Com Piso Isolado (75mm)','Com Piso Isolado (100mm)','Com Piso Reforçado (transpalete/empilhadeira)'], tag: 'PLANILHA' },
+    },
+  },
+  portas_visual: {
+    id: 'portas_visual',
+    title: 'Portas',
+    description: 'Clique em uma parede para posicionar portas.',
+    component: 'StepPortasVisual',
+  },
+  opcionais: {
+    id: 'opcionais',
+    title: 'Opcionais e Extras',
+    description: 'Selecione os opcionais desejados.',
+    component: 'StepOpcionais',
+  },
+  refrigeracao: {
+    id: 'refrigeracao',
+    title: 'Sistema de Refrigeração',
+    description: 'Configure o(s) compartimento(s) de refrigeração.',
+    component: 'StepRefrigeracao',
+    isDynamic: true,
+    arrayField: 'compartimentos',
+    arrayLabel: 'Compartimento',
+    arrayMin: 1,
+    arrayMax: 8,
+    arrayFields: {
+      nome_compartimento: { label: 'Nome / Identificação', type: 'text', required: true, minLength: 2, tag: 'PLANILHA' },
+      temperatura_setpoint: { label: 'Set Point (°C)', type: 'number', required: true, min: -40, max: 25, step: 1, tag: 'PLANILHA' },
+      produto_armazenado: { label: 'Produto Armazenado', type: 'creatable', required: true, options: ['Carnes bovinas','Carnes suínas','Aves','Peixes / Frutos do mar','Laticínios','Frutas','Verduras / Legumes','Bebidas','Congelados industriais','Sorvetes','Flores','Medicamentos','Químicos'], tag: 'PLANILHA' },
+      tipo_compressor: { label: 'Tipo de Compressor', type: 'select', required: true, options: ['Hermético','Semi-Hermético','Scroll','Parafuso (Screw)','Aberto'], tag: 'PLANILHA' },
+      marca_preferencia: { label: 'Marca Preferência', type: 'creatable', required: false, options: ['Bitzer','Copeland / Emerson','Danfoss','Embraco','Tecumseh','Dorin','Frascold','Sem preferência'] },
+      tipo_evaporador: { label: 'Tipo de Evaporador', type: 'select', required: true, options: ['Forçado (com ventiladores)','Estático (placa)','Forçado - Duplo Fluxo','Forçado - Teto Industrial'], tag: 'PLANILHA' },
+      tipo_condensador: { label: 'Tipo de Condensador', type: 'select', required: true, options: ['Ar (Remoto)','Ar (Acoplado)','Água (Torre de resfriamento)','Evaporativo'], tag: 'PLANILHA' },
+      tensao: { label: 'Tensão Elétrica', type: 'select', required: true, options: ['220V Monofásico','220V Trifásico','380V Trifásico','440V Trifásico'], tag: 'PLANILHA' },
+      degelo: { label: 'Tipo de Degelo', type: 'select', required: true, options: ['Elétrico','Gás Quente','Natural (Off-cycle)','Água'], tag: 'PLANILHA' },
+      fluido_refrigerante: { label: 'Fluido Refrigerante', type: 'select', required: true, options: ['R-404A','R-507A','R-134a','R-290 (Propano)','R-449A','R-448A','R-744 (CO₂)','Amônia (R-717)'], tag: 'PLANILHA' },
+    },
+  },
+  refrigeracao_industrial: {
+    id: 'refrigeracao_industrial',
+    title: 'Refrigeração Industrial',
+    description: 'Configuração de refrigeração para túnel de congelamento.',
+    component: 'StepRefrigeracaoIndustrial',
+    fields: {
+      temperatura_operacao: { label: 'Temperatura de Operação (°C)', type: 'number', required: true, min: -45, max: -20, step: 1, tag: 'PLANILHA' },
+      tipo_compressor: { label: 'Tipo de Compressor', type: 'select', required: true, options: ['Semi-Hermético','Parafuso (Screw)','Aberto'], tag: 'PLANILHA' },
+      fluido_refrigerante: { label: 'Fluido Refrigerante', type: 'select', required: true, options: ['R-404A','R-507A','R-717 (Amônia)','R-744 (CO₂)'], tag: 'PLANILHA' },
+      degelo: { label: 'Tipo de Degelo', type: 'select', required: true, options: ['Gás Quente','Água','Elétrico'], tag: 'PLANILHA' },
+      tensao: { label: 'Tensão Elétrica', type: 'select', required: true, options: ['220V Trifásico','380V Trifásico','440V Trifásico'], tag: 'PLANILHA' },
+    },
+  },
+  capacidade_produtiva: {
+    id: 'capacidade_produtiva',
+    title: 'Capacidade Produtiva',
+    description: 'Defina a capacidade de produção do túnel.',
+    component: 'StepCapacidadeProdutiva',
+    fields: {
+      capacidade_kg_h: { label: 'Capacidade (kg/h)', type: 'number', required: true, min: 50, max: 50000, step: 50, tag: 'PLANILHA' },
+      tempo_ciclo_min: { label: 'Tempo de Ciclo (min)', type: 'number', required: true, min: 10, max: 1440, step: 5, tag: 'PLANILHA' },
+      temp_entrada_produto: { label: 'Temperatura Entrada do Produto (°C)', type: 'number', required: true, min: -5, max: 40, step: 1, tag: 'PLANILHA' },
+      temp_saida_produto: { label: 'Temperatura Saída Desejada (°C)', type: 'number', required: true, min: -40, max: 0, step: 1, tag: 'PLANILHA' },
+      tipo_transporte: { label: 'Tipo de Transporte Interno', type: 'select', required: true, options: ['Esteira Contínua','Carros/Racks','Esteira Espiral','Bandejas'], tag: 'PLANILHA' },
+    },
+  },
+  hvac: {
+    id: 'hvac',
+    title: 'Climatização (HVAC)',
+    description: 'Configuração do sistema de climatização para a sala.',
+    component: 'StepHVAC',
+    fields: {
+      temperatura_desejada: { label: 'Temperatura Desejada (°C)', type: 'number', required: true, min: 15, max: 30, step: 1, tag: 'PLANILHA' },
+      umidade_relativa: { label: 'Umidade Relativa (%)', type: 'number', required: false, min: 30, max: 95, step: 5 },
+      renovacao_ar: { label: 'Renovação de Ar', type: 'select', required: true, options: ['Natural','Forçada - 1x/h','Forçada - 3x/h','Forçada - 6x/h','Forçada - 10x/h'], tag: 'PLANILHA' },
+      tipo_equipamento: { label: 'Tipo de Equipamento HVAC', type: 'select', required: true, options: ['Split Hi-Wall','Split Piso-Teto','Fancoil','Self-Contained','Rooftop'], tag: 'PLANILHA' },
+    },
+  },
+  instalacao: {
+    id: 'instalacao',
+    title: 'Instalação e Frete',
+    description: 'Condições de acesso, transporte e mão de obra.',
+    component: 'StepInstalacao',
+    fields: {
+      horario_entrega: { label: 'Horário p/ Entrega', type: 'creatable', required: true, options: ['Comercial (8h-17h)','Noturno (após 18h)','Madrugada (após 22h)','Finais de Semana','Livre (sem restrição)'], tag: 'PLANILHA' },
+      horario_instalacao: { label: 'Horário p/ Instalação', type: 'creatable', required: true, options: ['Comercial (8h-17h)','Noturno (após 18h)','Madrugada (após 22h)','Finais de Semana','Livre (sem restrição)'], tag: 'PLANILHA' },
+      transporte_vertical: { label: 'Transporte Vertical', type: 'select', required: true, options: ['Não necessário (térreo)','Elevador de carga','Munck / Guindaste','Escada (manual)','Talha elétrica'], tag: 'PLANILHA' },
+      faturamento_mao_obra: { label: 'Faturamento Mão de Obra', type: 'select', required: true, options: ['Incluso no equipamento','Separado (NF à parte)','Por conta do cliente','Sob consulta'], tag: 'PLANILHA' },
+      tipo_frete: { label: 'Tipo de Frete', type: 'select', required: true, options: ['CIF (Incluso)','FOB (Por conta do cliente)','Transportadora indicada','Coleta no local'], tag: 'PLANILHA' },
+      distancia_km: { label: 'Distância Estimada (km)', type: 'number', required: false, min: 0, max: 5000, step: 10 },
+      observacoes_instalacao: { label: 'Observações de Instalação', type: 'textarea', required: false, maxLength: 800 },
+    },
+  },
+  revisao: {
+    id: 'revisao',
+    title: 'Revisão e Envio',
+    description: 'Confira todos os dados antes de enviar o orçamento.',
+    component: 'StepRevisao',
+  },
+};
+
+// ============================================
+// OPTIONALS DEFINITION
+// ============================================
+const OPTIONAL_ITEMS = [
+  { id: 'alarme_temp', icon: '🔔', title: 'Alarme de Temperatura', options: ['Sonoro','Sonoro + Visual','Com Discador GSM'] },
+  { id: 'camera_interna', icon: '📷', title: 'Câmera Interna', options: [] },
+  { id: 'registrador_dados', icon: '🌡️', title: 'Registrador de Dados', options: ['Analógico','Digital','Digital c/ Nuvem'] },
+  { id: 'iluminacao_extra', icon: '💡', title: 'Iluminação Extra', options: ['LED IP65','LED IP67 (Freezer)','Arandela Blindada'] },
+  { id: 'cortina_pvc', icon: '🚿', title: 'Cortina PVC', options: ['Transparente','Polar (Anti-UV)'] },
+  { id: 'anti_gelo_porta', icon: '🧊', title: 'Anti-Gelo Porta', options: ['Resistência batente','Resistência soleira','Ambos'] },
+  { id: 'painel_controle', icon: '📊', title: 'Painel de Controle Digital', options: [] },
+  { id: 'tomadas_internas', icon: '🔌', title: 'Tomadas Internas', options: [] },
+];
+
+// ============================================
+// WIZARD ENGINE
+// ============================================
+class WizardEngine {
+  constructor() {
+    this.currentStep = 0;
+    this.steps = ['cliente', 'produto']; // Initial steps before product selection
+    this.formData = this.loadFromStorage() || {};
+    this.selectedProduct = this.formData._selectedProduct || null;
+    this.selectedClient = this.formData._selectedClient || null;
+
+    if (this.selectedProduct && PRODUCT_TYPES[this.selectedProduct]) {
+      this.steps = PRODUCT_TYPES[this.selectedProduct].steps;
+    }
+
+    this.currentStep = parseInt(localStorage.getItem('wizard_v2_step') || '0');
+    if (this.currentStep >= this.steps.length) this.currentStep = 0;
+  }
+
+  get totalSteps() { return this.steps.length; }
+  get currentStepId() { return this.steps[this.currentStep]; }
+  get currentModule() { return STEP_MODULES[this.currentStepId]; }
+
+  setProduct(productId) {
+    this.selectedProduct = productId;
+    this.formData._selectedProduct = productId;
+    this.steps = PRODUCT_TYPES[productId].steps;
+    this.saveToStorage();
+  }
+
+  setClient(client) {
+    this.selectedClient = client;
+    this.formData._selectedClient = client;
+    this.saveToStorage();
+  }
+
+  getStepData(stepId) {
+    if (!this.formData[stepId]) this.formData[stepId] = {};
+    return this.formData[stepId];
+  }
+
+  setStepData(stepId, data) {
+    this.formData[stepId] = { ...this.formData[stepId], ...data };
+    this.saveToStorage();
+  }
+
+  next() {
+    if (this.currentStep < this.totalSteps - 1) {
+      this.currentStep++;
+      localStorage.setItem('wizard_v2_step', this.currentStep);
+      this.render();
+    }
+  }
+
+  prev() {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      localStorage.setItem('wizard_v2_step', this.currentStep);
+      this.render();
+    }
+  }
+
+  goTo(idx) {
+    if (idx >= 0 && idx < this.totalSteps) {
+      this.currentStep = idx;
+      localStorage.setItem('wizard_v2_step', this.currentStep);
+      this.render();
+    }
+  }
+
+  saveToStorage() {
+    localStorage.setItem('wizard_v2_formData', JSON.stringify(this.formData));
+  }
+
+  loadFromStorage() {
+    try {
+      const raw = localStorage.getItem('wizard_v2_formData');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  clearStorage() {
+    localStorage.removeItem('wizard_v2_formData');
+    localStorage.removeItem('wizard_v2_step');
+    this.formData = {};
+    this.selectedProduct = null;
+    this.selectedClient = null;
+    this.currentStep = 0;
+    this.steps = ['cliente', 'produto'];
+    this.render();
+  }
+
+  // Validates the current step's required fields
+  validateCurrentStep() {
+    const stepId = this.currentStepId;
+    const module = STEP_MODULES[stepId];
+    if (!module || !module.fields) return { valid: true, errors: [] };
+
+    const data = this.getStepData(stepId);
+    const errors = [];
+
+    // For dynamic array steps
+    if (module.isDynamic && module.arrayField) {
+      const items = data[module.arrayField] || [];
+      if (items.length < (module.arrayMin || 1)) {
+        errors.push(`Adicione pelo menos ${module.arrayMin || 1} ${module.arrayLabel || 'item'}.`);
+      }
+      items.forEach((item, idx) => {
+        Object.entries(module.arrayFields).forEach(([key, field]) => {
+          if (field.required && (!item[key] || String(item[key]).trim() === '')) {
+            errors.push(`${module.arrayLabel} #${idx+1}: "${field.label}" é obrigatório.`);
+          }
+        });
+      });
+      return { valid: errors.length === 0, errors };
+    }
+
+    // Standard fields
+    Object.entries(module.fields).forEach(([key, field]) => {
+      if (field.required) {
+        const val = data[key];
+        if (val === undefined || val === null || String(val).trim() === '') {
+          errors.push(`"${field.label}" é obrigatório.`);
+        }
+      }
+    });
+    return { valid: errors.length === 0, errors };
+  }
+
+  render() {
+    const container = document.getElementById('wizardContainer');
+    if (!container) return;
+
+    // Render step indicator
+    let indicatorHTML = '<div class="step-indicator">';
+    this.steps.forEach((stepId, idx) => {
+      const module = STEP_MODULES[stepId];
+      const isActive = idx === this.currentStep;
+      const isCompleted = idx < this.currentStep;
+      let dotClass = 'step-dot';
+      if (isActive) dotClass += ' active';
+      if (isCompleted) dotClass += ' completed';
+      indicatorHTML += `<div class="${dotClass}" onclick="wizard.goTo(${idx})" title="${module?.title || stepId}">${idx + 1}</div>`;
+      if (idx < this.steps.length - 1) indicatorHTML += `<div class="step-line${isCompleted ? ' completed' : ''}"></div>`;
+    });
+    indicatorHTML += '</div>';
+
+    // Render current step
+    const stepId = this.currentStepId;
+    const module = STEP_MODULES[stepId];
+    let stepHTML = '';
+
+    switch (module?.component) {
+      case 'StepCliente': stepHTML = this.renderClientStep(); break;
+      case 'StepProduto': stepHTML = this.renderProductStep(); break;
+      case 'StepDimensoesVisual': stepHTML = this.renderDimensionsStep(); break;
+      case 'StepPortasVisual': stepHTML = this.renderDoorsStep(); break;
+      case 'StepOpcionais': stepHTML = this.renderOptionalsStep(); break;
+      case 'StepRevisao': stepHTML = this.renderReviewStep(); break;
+      default: stepHTML = this.renderFormStep(stepId, module); break;
+    }
+
+    // Navigation
+    const isFirst = this.currentStep === 0;
+    const isLast = this.currentStep === this.totalSteps - 1;
+    let navHTML = '<div class="wizard-nav">';
+    navHTML += isFirst ? '<div></div>' : '<button class="btn-wizard btn-prev" onclick="wizard.prev()">← Anterior</button>';
+    if (isLast) {
+      navHTML += '<button class="btn-wizard btn-next btn-submit-style" onclick="wizard.submit()">✅ Enviar Orçamento</button>';
+    } else {
+      navHTML += '<button class="btn-wizard btn-next" onclick="wizard.advance()">Próximo →</button>';
+    }
+    navHTML += '</div>';
+
+    container.innerHTML = indicatorHTML + '<div class="step-card">' + stepHTML + '</div>' + navHTML;
+
+    // Post-render bindings
+    this.bindCurrentStep();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  advance() {
+    const stepId = this.currentStepId;
+
+    // Special validation for client step
+    if (stepId === 'cliente' && !this.selectedClient) {
+      alert('Selecione ou cadastre um cliente antes de continuar.');
+      return;
+    }
+    // Special for product step
+    if (stepId === 'produto' && !this.selectedProduct) {
+      alert('Selecione um tipo de produto.');
+      return;
+    }
+
+    // Validate form fields
+    const { valid, errors } = this.validateCurrentStep();
+    if (!valid) {
+      alert('Preencha os campos obrigatórios:\n\n• ' + errors.join('\n• '));
+      return;
+    }
+
+    this.next();
+  }
+
+  // ===== CLIENT STEP =====
+  renderClientStep() {
+    const client = this.selectedClient;
+    let html = `<div class="step-header"><h2>👤 Identificação do Cliente</h2><p>Busque um cliente existente ou cadastre um novo.</p></div>`;
+
+    // Search
+    html += `<div class="client-search-box">
+      <input type="text" class="form-input" id="clientSearchInput" placeholder="Buscar por CNPJ, Razão Social ou Telefone..." value="" />
+      <button class="btn-wizard btn-next" onclick="wizard.searchClient()" style="padding:10px 18px;">🔍 Buscar</button>
+    </div>`;
+    html += `<div class="client-results" id="clientResults"></div>`;
+
+    // Selected client
+    if (client) {
+      html += `<div class="client-result-card selected" style="margin-bottom:16px;">
+        <div class="client-result-info">
+          <h4>✅ ${escapeHtml(client.razao_social)}</h4>
+          <p>${escapeHtml(client.cnpj_cpf || '')} · ${escapeHtml(client.cidade || '')}/${escapeHtml(client.estado || '')}</p>
+        </div>
+        <button onclick="wizard.clearClient()" style="padding:6px 12px;background:var(--color-error);color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;">Trocar</button>
+      </div>`;
+    }
+
+    // New client form
+    html += `<div class="client-form-section" id="newClientForm" ${client ? 'style="display:none;"' : ''}>
+      <h4>➕ Novo Cliente (formulário rápido)</h4>
+      <div class="form-grid">
+        <div class="form-group"><label>Razão Social/Nome <span class="required">*</span></label><input class="form-input" id="nc_razao_social" /></div>
+        <div class="form-group"><label>CNPJ/CPF <span class="required">*</span></label><input class="form-input" id="nc_cnpj_cpf" placeholder="00.000.000/0000-00" /></div>
+        <div class="form-group"><label>Telefone <span class="required">*</span></label><input class="form-input" id="nc_telefone" placeholder="(00) 00000-0000" /></div>
+        <div class="form-group"><label>E-mail</label><input class="form-input" id="nc_email" type="email" /></div>
+        <div class="form-group"><label>Cidade <span class="required">*</span></label><input class="form-input" id="nc_cidade" /></div>
+        <div class="form-group"><label>Estado (UF) <span class="required">*</span></label>
+          <select class="form-select" id="nc_estado"><option value="">Selecione</option></select>
+        </div>
+        <div class="form-group"><label>CEP</label><input class="form-input" id="nc_cep" /></div>
+        <div class="form-group"><label>Endereço</label><input class="form-input" id="nc_endereco" /></div>
+        <div class="form-group full-width"><label>Local de Instalação</label><input class="form-input" id="nc_local_instalacao" /></div>
+      </div>
+      <button class="btn-wizard btn-next" onclick="wizard.saveNewClient()" style="margin-top:16px;">Salvar e Continuar →</button>
+    </div>`;
+
+    return html;
+  }
+
+  async searchClient() {
+    const query = document.getElementById('clientSearchInput')?.value?.trim();
+    if (!query || query.length < 2) return;
+
+    const resultsEl = document.getElementById('clientResults');
+    resultsEl.innerHTML = '<p style="color:var(--text-secondary);font-size:12px;">Buscando...</p>';
+
+    try {
+      const { data, error } = await sbClient.rpc('saorafael_search_clients', { p_query: query });
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        resultsEl.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Nenhum cliente encontrado. Cadastre um novo abaixo.</p>';
+        return;
+      }
+
+      resultsEl.innerHTML = data.map(c => `
+        <div class="client-result-card" onclick="wizard.selectClient(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+          <div class="client-result-info">
+            <h4>🏢 ${escapeHtml(c.razao_social)}</h4>
+            <p>${escapeHtml(c.cnpj_cpf || 'Sem CNPJ')} · ${escapeHtml(c.cidade || '')}/${escapeHtml(c.estado || '')}</p>
+          </div>
+          <span class="client-result-badge">${c.total_orcamentos || 0} orçamento(s)</span>
+        </div>
+      `).join('');
+    } catch (err) {
+      resultsEl.innerHTML = `<p style="color:var(--color-error);font-size:12px;">Erro: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  selectClient(client) {
+    this.selectedClient = client;
+    this.formData._selectedClient = client;
+    this.formData.cliente = {
+      client_id: client.id,
+      razao_social: client.razao_social,
+      cnpj_cpf: client.cnpj_cpf,
+      telefone: client.telefone,
+      email: client.email,
+      cidade: client.cidade,
+      estado: client.estado,
+    };
+    this.saveToStorage();
+    this.render();
+  }
+
+  clearClient() {
+    this.selectedClient = null;
+    this.formData._selectedClient = null;
+    delete this.formData.cliente;
+    this.saveToStorage();
+    this.render();
+  }
+
+  async saveNewClient() {
+    const razao = document.getElementById('nc_razao_social')?.value?.trim();
+    const cnpj = document.getElementById('nc_cnpj_cpf')?.value?.trim();
+    const telefone = document.getElementById('nc_telefone')?.value?.trim();
+    const email = document.getElementById('nc_email')?.value?.trim();
+    const cidade = document.getElementById('nc_cidade')?.value?.trim();
+    const estado = document.getElementById('nc_estado')?.value;
+    const cep = document.getElementById('nc_cep')?.value?.trim();
+    const endereco = document.getElementById('nc_endereco')?.value?.trim();
+    const local = document.getElementById('nc_local_instalacao')?.value?.trim();
+
+    if (!razao) { alert('Razão Social é obrigatória.'); return; }
+    if (!telefone) { alert('Telefone é obrigatório.'); return; }
+    if (!cidade || !estado) { alert('Cidade e Estado são obrigatórios.'); return; }
+
+    try {
+      const { data: clientId, error } = await sbClient.rpc('saorafael_upsert_client', {
+        p_razao_social: razao,
+        p_cnpj_cpf: cnpj || null,
+        p_telefone: telefone,
+        p_email: email || null,
+        p_cidade: cidade,
+        p_estado: estado,
+        p_cep: cep || null,
+        p_endereco: endereco || null,
+        p_local_instalacao: local || null,
+      });
+      if (error) throw error;
+
+      const newClient = { id: clientId, razao_social: razao, cnpj_cpf: cnpj, telefone, email, cidade, estado };
+      this.selectClient(newClient);
+      addChatMessage(`✅ Cliente "${razao}" cadastrado com sucesso!`, 'system');
+    } catch (err) {
+      alert('Erro ao salvar cliente: ' + err.message);
+    }
+  }
+
+  // ===== PRODUCT STEP =====
+  renderProductStep() {
+    let html = `<div class="step-header"><h2>📦 Tipo de Produto</h2><p>Selecione o equipamento para este orçamento.</p></div>`;
+    html += '<div class="product-grid">';
+    Object.values(PRODUCT_TYPES).forEach(p => {
+      const selected = this.selectedProduct === p.id ? ' selected' : '';
+      html += `<div class="product-card${selected}" onclick="wizard.selectProduct('${p.id}')">
+        <div class="product-card-icon">${p.icon}</div>
+        <div class="product-card-title">${p.name}</div>
+        <div class="product-card-desc">${p.description}</div>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  }
+
+  selectProduct(productId) {
+    this.setProduct(productId);
+    this.render();
+  }
+
+  // ===== DIMENSIONS STEP (SVG) =====
+  renderDimensionsStep() {
+    const data = this.getStepData('dimensoes_visual');
+    const module = STEP_MODULES.dimensoes_visual;
+
+    const comp = parseFloat(data.comprimento_ext) || 4.48;
+    const larg = parseFloat(data.largura_ext) || 3.36;
+    const alt = parseFloat(data.altura_ext) || 3.00;
+    const esp = parseFloat(data.espessura_painel) || 100;
+    const espM = esp / 1000;
+    const compInt = (comp - 2 * espM).toFixed(2);
+    const largInt = (larg - 2 * espM).toFixed(2);
+    const altInt = (alt - 2 * espM).toFixed(2);
+    const volume = (compInt * largInt * altInt).toFixed(1);
+    const area = (compInt * largInt).toFixed(1);
+
+    let html = `<div class="step-header"><h2>📐 ${module.title}</h2><p>${module.description}</p></div>`;
+
+    html += '<div class="dimension-viewer">';
+
+    // SVG - Top-down view
+    const svgW = 280, svgH = 220;
+    const scale = Math.min((svgW - 40) / comp, (svgH - 40) / larg);
+    const rW = comp * scale, rH = larg * scale;
+    const offsetX = (svgW - rW) / 2, offsetY = (svgH - rH) / 2;
+    const wallPx = espM * scale;
+
+    html += `<div class="dimension-svg-container">
+      <svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+        <!-- Parede externa -->
+        <rect x="${offsetX}" y="${offsetY}" width="${rW}" height="${rH}" fill="#cfd8dc" stroke="#455a64" stroke-width="1.5" rx="2"/>
+        <!-- Interior -->
+        <rect x="${offsetX + wallPx}" y="${offsetY + wallPx}" width="${rW - 2*wallPx}" height="${rH - 2*wallPx}" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="1"/>
+        <!-- Labels -->
+        <text x="${svgW/2}" y="${offsetY - 6}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600">◄─ ${comp}m ─►</text>
+        <text x="${offsetX - 6}" y="${svgH/2}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600" transform="rotate(-90, ${offsetX - 6}, ${svgH/2})">${larg}m</text>
+        <text x="${svgW/2}" y="${svgH/2}" text-anchor="middle" font-size="9" fill="#1976d2">Interior: ${compInt}×${largInt}m</text>
+        <text x="${svgW/2}" y="${svgH/2 + 14}" text-anchor="middle" font-size="8" fill="#64748b">Painel: ${esp}mm</text>
+      </svg>
+    </div>`;
+
+    // Inputs
+    html += '<div class="dimension-inputs">';
+    html += this.renderFieldInput('comprimento_ext', module.fields.comprimento_ext, data.comprimento_ext || '');
+    html += this.renderFieldInput('largura_ext', module.fields.largura_ext, data.largura_ext || '');
+    html += this.renderFieldInput('altura_ext', module.fields.altura_ext, data.altura_ext || '');
+    html += this.renderFieldInput('espessura_painel', module.fields.espessura_painel, data.espessura_painel || '100');
+    html += this.renderFieldInput('tipo_isolamento', module.fields.tipo_isolamento, data.tipo_isolamento || '');
+    html += this.renderFieldInput('revestimento_interno', module.fields.revestimento_interno, data.revestimento_interno || '');
+    html += this.renderFieldInput('revestimento_externo', module.fields.revestimento_externo, data.revestimento_externo || '');
+    html += this.renderFieldInput('piso', module.fields.piso, data.piso || '');
+
+    // Calculated values
+    html += `<div class="dimension-calc">
+      <h5>Valores Calculados</h5>
+      <div class="calc-row"><span class="label">Comprimento Int:</span><span class="value">${compInt} m</span></div>
+      <div class="calc-row"><span class="label">Largura Int:</span><span class="value">${largInt} m</span></div>
+      <div class="calc-row"><span class="label">Altura Int:</span><span class="value">${altInt} m</span></div>
+      <div class="calc-row"><span class="label">Área Piso:</span><span class="value">${area} m²</span></div>
+      <div class="calc-row"><span class="label">Volume:</span><span class="value">${volume} m³</span></div>
+    </div>`;
+    html += '</div>'; // dimension-inputs
+    html += '</div>'; // dimension-viewer
+
+    return html;
+  }
+
+  // ===== DOORS STEP (SVG) =====
+  renderDoorsStep() {
+    const dimData = this.getStepData('dimensoes_visual');
+    const doorsData = this.getStepData('portas_visual');
+    const doors = doorsData.portas || [];
+
+    const comp = parseFloat(dimData.comprimento_ext) || 4.48;
+    const larg = parseFloat(dimData.largura_ext) || 3.36;
+
+    let html = `<div class="step-header"><h2>🚪 Portas</h2><p>Clique em uma parede para adicionar uma porta.</p></div>`;
+
+    // SVG with clickable walls
+    const svgW = 400, svgH = 300;
+    const margin = 50;
+    const scale = Math.min((svgW - 2*margin) / comp, (svgH - 2*margin) / larg);
+    const rW = comp * scale, rH = larg * scale;
+    const oX = (svgW - rW) / 2, oY = (svgH - rH) / 2;
+
+    html += `<div class="door-placement-container">
+      <div class="door-svg-container">
+        <svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" id="doorSvg">
+          <rect x="${oX}" y="${oY}" width="${rW}" height="${rH}" fill="#e3f2fd" stroke="#455a64" stroke-width="2" rx="2"/>
+          <!-- Clickable walls -->
+          <rect class="door-wall" x="${oX}" y="${oY - 12}" width="${rW}" height="14" fill="rgba(0,0,0,0.03)" data-wall="norte" onclick="wizard.addDoorToWall('norte')"/>
+          <rect class="door-wall" x="${oX}" y="${oY + rH - 2}" width="${rW}" height="14" fill="rgba(0,0,0,0.03)" data-wall="sul" onclick="wizard.addDoorToWall('sul')"/>
+          <rect class="door-wall" x="${oX - 12}" y="${oY}" width="14" height="${rH}" fill="rgba(0,0,0,0.03)" data-wall="oeste" onclick="wizard.addDoorToWall('oeste')"/>
+          <rect class="door-wall" x="${oX + rW - 2}" y="${oY}" width="14" height="${rH}" fill="rgba(0,0,0,0.03)" data-wall="leste" onclick="wizard.addDoorToWall('leste')"/>
+          <!-- Wall labels -->
+          <text x="${svgW/2}" y="${oY - 16}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600">NORTE (${comp}m)</text>
+          <text x="${svgW/2}" y="${oY + rH + 22}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600">SUL</text>
+          <text x="${oX - 18}" y="${svgH/2}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600" transform="rotate(-90,${oX-18},${svgH/2})">OESTE (${larg}m)</text>
+          <text x="${oX + rW + 18}" y="${svgH/2}" text-anchor="middle" font-size="10" fill="#455a64" font-weight="600" transform="rotate(90,${oX+rW+18},${svgH/2})">LESTE</text>
+          <!-- Door markers -->
+          ${doors.map((d, i) => {
+            let dx, dy;
+            if (d.parede === 'norte') { dx = oX + rW/2; dy = oY + 2; }
+            else if (d.parede === 'sul') { dx = oX + rW/2; dy = oY + rH - 6; }
+            else if (d.parede === 'oeste') { dx = oX + 2; dy = oY + rH/2; }
+            else { dx = oX + rW - 6; dy = oY + rH/2; }
+            return `<g><rect x="${dx-10}" y="${dy-4}" width="20" height="8" fill="#d82444" rx="2" opacity="0.8"/><text x="${dx}" y="${dy+3}" text-anchor="middle" font-size="7" fill="white" font-weight="700">P${i+1}</text></g>`;
+          }).join('')}
+        </svg>
+      </div>`;
+
+    // Door list
+    html += '<div class="door-list">';
+    if (doors.length === 0) {
+      html += '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:16px;">Nenhuma porta adicionada. Clique em uma parede acima.</p>';
+    } else {
+      doors.forEach((d, i) => {
+        html += `<div class="door-item">
+          <div class="door-item-info">🚪 <strong>Porta ${i+1}:</strong> ${d.tipo} ${d.largura}x${d.altura}mm — Parede ${d.parede}</div>
+          <div class="door-item-actions">
+            <button onclick="wizard.removeDoor(${i})" style="background:var(--color-error);color:white;">Remover</button>
+          </div>
+        </div>`;
+      });
+    }
+    html += '<button class="btn-add-item" onclick="wizard.showDoorModal()" style="margin-top:8px;">+ Adicionar Porta Manualmente</button>';
+    html += '</div></div>';
+
+    return html;
+  }
+
+  addDoorToWall(wall) {
+    this.showDoorModal(wall);
+  }
+
+  showDoorModal(preselectedWall) {
+    const walls = ['norte','sul','leste','oeste'];
+    const tipos = ['Giratória Isotérmica','Correr Isotérmica','Vai e Vem','Expositora de Vidro','Guilhotina','Porta Rápida (Roll-up)'];
+    const larguras = ['600','700','800','900','1000','1200','1400','1600','1800','2000'];
+    const alturas = ['1800','1900','2000','2100','2200','2400','2600','2800','3000'];
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'doorModal';
+    overlay.innerHTML = `<div class="modal-content">
+      <div class="modal-header"><h3>🚪 Nova Porta</h3><button class="modal-close" onclick="document.getElementById('doorModal').remove()">✕</button></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Parede <span class="required">*</span></label>
+          <select class="form-select" id="door_parede">${walls.map(w => `<option value="${w}" ${w === preselectedWall ? 'selected' : ''}>${w.charAt(0).toUpperCase() + w.slice(1)}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label>Tipo <span class="required">*</span></label>
+          <select class="form-select" id="door_tipo">${tipos.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label>Largura (mm) <span class="required">*</span></label>
+          <select class="form-select" id="door_largura">${larguras.map(l => `<option value="${l}" ${l==='800'?'selected':''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label>Altura (mm) <span class="required">*</span></label>
+          <select class="form-select" id="door_altura">${alturas.map(a => `<option value="${a}" ${a==='2100'?'selected':''}>${a}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-wizard btn-prev" onclick="document.getElementById('doorModal').remove()">Cancelar</button>
+        <button class="btn-wizard btn-next" onclick="wizard.confirmAddDoor()">Adicionar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  confirmAddDoor() {
+    const parede = document.getElementById('door_parede').value;
+    const tipo = document.getElementById('door_tipo').value;
+    const largura = document.getElementById('door_largura').value;
+    const altura = document.getElementById('door_altura').value;
+
+    const data = this.getStepData('portas_visual');
+    if (!data.portas) data.portas = [];
+    data.portas.push({ parede, tipo, largura, altura });
+    this.setStepData('portas_visual', data);
+
+    document.getElementById('doorModal')?.remove();
+    this.render();
+  }
+
+  removeDoor(idx) {
+    const data = this.getStepData('portas_visual');
+    if (data.portas) data.portas.splice(idx, 1);
+    this.setStepData('portas_visual', data);
+    this.render();
+  }
+
+  // ===== OPTIONALS STEP =====
+  renderOptionalsStep() {
+    const data = this.getStepData('opcionais');
+    const selected = data.selectedItems || {};
+
+    let html = `<div class="step-header"><h2>⚙️ Opcionais e Extras</h2><p>Selecione os opcionais desejados para este equipamento.</p></div>`;
+    html += '<div class="optionals-grid">';
+    OPTIONAL_ITEMS.forEach(item => {
+      const isActive = selected[item.id] ? ' active' : '';
+      html += `<div class="optional-card${isActive}" onclick="wizard.toggleOptional('${item.id}')">
+        <div class="optional-card-icon">${item.icon}</div>
+        <div class="optional-card-title">${item.title}</div>
+      </div>`;
+    });
+    html += '</div>';
+
+    // Details for selected
+    const selectedIds = Object.keys(selected).filter(k => selected[k]);
+    if (selectedIds.length > 0) {
+      html += '<div style="margin-top:20px;border-top:1px solid var(--border-color);padding-top:16px;">';
+      html += '<h4 style="font-size:13px;font-weight:700;margin-bottom:12px;">Detalhes dos Opcionais Selecionados</h4>';
+      html += '<div class="form-grid">';
+      selectedIds.forEach(id => {
+        const item = OPTIONAL_ITEMS.find(o => o.id === id);
+        if (item && item.options.length > 0) {
+          html += `<div class="form-group"><label>${item.icon} ${item.title}</label>
+            <select class="form-select" onchange="wizard.setOptionalDetail('${id}', this.value)">
+              <option value="">Selecione...</option>
+              ${item.options.map(o => `<option value="${o}" ${selected[id] === o ? 'selected' : ''}>${o}</option>`).join('')}
+            </select>
+          </div>`;
+        }
+      });
+      html += '</div></div>';
+    }
+
+    return html;
+  }
+
+  toggleOptional(id) {
+    const data = this.getStepData('opcionais');
+    if (!data.selectedItems) data.selectedItems = {};
+    data.selectedItems[id] = data.selectedItems[id] ? false : true;
+    this.setStepData('opcionais', data);
+    this.render();
+  }
+
+  setOptionalDetail(id, value) {
+    const data = this.getStepData('opcionais');
+    if (!data.selectedItems) data.selectedItems = {};
+    data.selectedItems[id] = value || true;
+    this.setStepData('opcionais', data);
+  }
+
+  // ===== REVIEW STEP =====
+  renderReviewStep() {
+    let html = `<div class="step-header"><h2>📋 Revisão do Orçamento</h2><p>Confira todos os dados antes de enviar.</p></div>`;
+    html += '<div class="review-grid">';
+
+    // Client
+    if (this.selectedClient) {
+      html += `<div class="review-section"><h4>👤 Cliente</h4>`;
+      html += this.reviewRow('Razão Social', this.selectedClient.razao_social);
+      html += this.reviewRow('CNPJ/CPF', this.selectedClient.cnpj_cpf);
+      html += this.reviewRow('Cidade/UF', `${this.selectedClient.cidade || ''}/${this.selectedClient.estado || ''}`);
+      html += '</div>';
+    }
+
+    // Product
+    if (this.selectedProduct) {
+      const prod = PRODUCT_TYPES[this.selectedProduct];
+      html += `<div class="review-section"><h4>📦 Produto</h4>`;
+      html += this.reviewRow('Tipo', prod.name);
+      html += '</div>';
+    }
+
+    // All step data
+    this.steps.forEach(stepId => {
+      const module = STEP_MODULES[stepId];
+      if (!module || !module.fields || stepId === 'revisao') return;
+      const data = this.getStepData(stepId);
+      if (Object.keys(data).length === 0) return;
+
+      html += `<div class="review-section"><h4>${module.title}</h4>`;
+      if (module.isDynamic && module.arrayField) {
+        const items = data[module.arrayField] || [];
+        items.forEach((item, idx) => {
+          html += `<p style="font-size:11px;font-weight:700;color:var(--color-primary);margin:8px 0 4px;">${module.arrayLabel} #${idx+1}</p>`;
+          Object.entries(module.arrayFields).forEach(([key, field]) => {
+            if (item[key]) html += this.reviewRow(field.label, item[key]);
+          });
+        });
+      } else {
+        Object.entries(module.fields).forEach(([key, field]) => {
+          if (data[key]) html += this.reviewRow(field.label, data[key]);
+        });
+      }
+      html += '</div>';
+    });
+
+    // Dimensions calculated
+    const dimData = this.getStepData('dimensoes_visual');
+    if (dimData.comprimento_ext) {
+      const esp = (parseFloat(dimData.espessura_painel) || 100) / 1000;
+      const compI = (parseFloat(dimData.comprimento_ext) - 2 * esp).toFixed(2);
+      const largI = (parseFloat(dimData.largura_ext) - 2 * esp).toFixed(2);
+      const altI = (parseFloat(dimData.altura_ext) - 2 * esp).toFixed(2);
+      html += `<div class="review-section"><h4>📐 Dimensões Internas (calculadas)</h4>`;
+      html += this.reviewRow('Dimensões Int.', `${compI} × ${largI} × ${altI} m`);
+      html += this.reviewRow('Volume', `${(compI * largI * altI).toFixed(1)} m³`);
+      html += this.reviewRow('Área Piso', `${(compI * largI).toFixed(1)} m²`);
+      html += '</div>';
+    }
+
+    // Doors
+    const doorsData = this.getStepData('portas_visual');
+    if (doorsData.portas && doorsData.portas.length > 0) {
+      html += `<div class="review-section"><h4>🚪 Portas</h4>`;
+      doorsData.portas.forEach((d, i) => {
+        html += this.reviewRow(`Porta ${i+1}`, `${d.tipo} ${d.largura}×${d.altura}mm — ${d.parede}`);
+      });
+      html += '</div>';
+    }
+
+    // Optionals
+    const optData = this.getStepData('opcionais');
+    if (optData.selectedItems) {
+      const active = Object.entries(optData.selectedItems).filter(([,v]) => v);
+      if (active.length > 0) {
+        html += `<div class="review-section"><h4>⚙️ Opcionais</h4>`;
+        active.forEach(([id, val]) => {
+          const item = OPTIONAL_ITEMS.find(o => o.id === id);
+          html += this.reviewRow(item?.title || id, typeof val === 'string' ? val : '✓');
+        });
+        html += '</div>';
+      }
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  reviewRow(label, value) {
+    return `<div class="review-row"><span class="rl">${escapeHtml(label)}</span><span class="rv">${escapeHtml(String(value || '—'))}</span></div>`;
+  }
+
+  // ===== GENERIC FORM STEP =====
+  renderFormStep(stepId, module) {
+    if (!module) return '<p>Step não encontrado.</p>';
+    const data = this.getStepData(stepId);
+
+    let html = `<div class="step-header"><h2>${module.title}</h2><p>${module.description || ''}</p></div>`;
+
+    // Dynamic array steps
+    if (module.isDynamic && module.arrayField) {
+      const items = data[module.arrayField] || [{}];
+      html += '<div class="array-section">';
+      html += `<div class="array-header"><h4>${module.arrayLabel || 'Item'}s</h4>`;
+      html += `<button class="btn-add-item" onclick="wizard.addArrayItem('${stepId}')">+ Adicionar ${module.arrayLabel}</button></div>`;
+      items.forEach((item, idx) => {
+        html += `<div class="array-item"><div class="array-item-header"><span>${module.arrayLabel} #${idx+1}</span>`;
+        if (items.length > (module.arrayMin || 1)) {
+          html += `<button class="btn-remove-item" onclick="wizard.removeArrayItem('${stepId}', ${idx})">Remover</button>`;
+        }
+        html += '</div><div class="form-grid">';
+        Object.entries(module.arrayFields).forEach(([key, field]) => {
+          html += this.renderFieldInput(`${stepId}_${idx}_${key}`, field, item[key] || '', `data-step="${stepId}" data-idx="${idx}" data-field="${key}"`);
+        });
+        html += '</div></div>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    // Regular form
+    html += '<div class="form-grid">';
+    Object.entries(module.fields).forEach(([key, field]) => {
+      html += this.renderFieldInput(`${stepId}_${key}`, field, data[key] || '', `data-step="${stepId}" data-field="${key}"`);
+    });
+    html += '</div>';
+    return html;
+  }
+
+  addArrayItem(stepId) {
+    const module = STEP_MODULES[stepId];
+    const data = this.getStepData(stepId);
+    if (!data[module.arrayField]) data[module.arrayField] = [{}];
+    if (data[module.arrayField].length >= (module.arrayMax || 8)) { alert('Máximo atingido.'); return; }
+    data[module.arrayField].push({});
+    this.setStepData(stepId, data);
+    this.render();
+  }
+
+  removeArrayItem(stepId, idx) {
+    const module = STEP_MODULES[stepId];
+    const data = this.getStepData(stepId);
+    data[module.arrayField].splice(idx, 1);
+    this.setStepData(stepId, data);
+    this.render();
+  }
+
+  // ===== FIELD RENDERER =====
+  renderFieldInput(id, field, value, extraAttrs = '') {
+    const req = field.required ? '<span class="required">*</span>' : '';
+    const tag = field.tag ? `<span class="field-tag">${field.tag}</span>` : '';
+
+    let input = '';
+    switch (field.type) {
+      case 'select':
+        input = `<select class="form-select" id="${id}" ${extraAttrs}>
+          <option value="">Selecione...</option>
+          ${(field.options || []).map(o => `<option value="${o}" ${o == value ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>`;
+        break;
+      case 'textarea':
+        input = `<textarea class="form-textarea" id="${id}" ${extraAttrs} maxlength="${field.maxLength || 1000}">${escapeHtml(value)}</textarea>`;
+        break;
+      case 'number':
+        input = `<input type="number" class="form-input" id="${id}" ${extraAttrs} value="${value}" min="${field.min ?? ''}" max="${field.max ?? ''}" step="${field.step || 1}" />`;
+        break;
+      case 'creatable':
+        input = `<div class="creatable-container">
+          <input type="text" class="creatable-input" id="${id}" ${extraAttrs} value="${escapeHtml(value)}" autocomplete="off" onfocus="showCreatableDropdown('${id}')" />
+          <div class="creatable-dropdown" id="${id}_dropdown">
+            ${(field.options || []).map(o => `<div class="creatable-option" onclick="selectCreatableOption('${id}', '${escapeHtml(o)}')">${escapeHtml(o)}</div>`).join('')}
+          </div>
+        </div>`;
+        break;
+      default: // text
+        input = `<input type="text" class="form-input" id="${id}" ${extraAttrs} value="${escapeHtml(value)}" />`;
+    }
+
+    return `<div class="form-group">
+      <label>${field.label} ${req} ${tag}</label>
+      ${input}
+      ${field.hint ? `<span class="field-hint">${field.hint}</span>` : ''}
+    </div>`;
+  }
+
+  // ===== POST-RENDER BINDINGS =====
+  bindCurrentStep() {
+    const stepId = this.currentStepId;
+    const module = STEP_MODULES[stepId];
+    if (!module) return;
+
+    // Populate estado dropdown for new client form
+    if (stepId === 'cliente') {
+      const estadoSelect = document.getElementById('nc_estado');
+      if (estadoSelect && ibgeEstados.length > 0) {
+        estadoSelect.innerHTML = '<option value="">Selecione</option>' + ibgeEstados.map(e => `<option value="${e.sigla}">${e.sigla}</option>`).join('');
+      }
+    }
+
+    // Bind change events for form fields
+    if (module.fields && !module.isDynamic) {
+      Object.keys(module.fields).forEach(key => {
+        const el = document.getElementById(`${stepId}_${key}`);
+        if (el) {
+          el.addEventListener('change', () => {
+            const data = this.getStepData(stepId);
+            data[key] = el.value;
+            this.setStepData(stepId, data);
+
+            // Re-render dimensions if they changed
+            if (stepId === 'dimensoes_visual' && ['comprimento_ext','largura_ext','altura_ext','espessura_painel'].includes(key)) {
+              this.render();
+            }
+          });
+          // Also on input for live updates
+          if (el.type === 'number' || el.type === 'text') {
+            el.addEventListener('input', () => {
+              const data = this.getStepData(stepId);
+              data[key] = el.value;
+              this.setStepData(stepId, data);
+            });
+          }
+        }
+      });
+    }
+
+    // Bind dynamic array fields
+    if (module.isDynamic && module.arrayField) {
+      const data = this.getStepData(stepId);
+      const items = data[module.arrayField] || [{}];
+      items.forEach((item, idx) => {
+        Object.keys(module.arrayFields).forEach(key => {
+          const el = document.getElementById(`${stepId}_${idx}_${key}`);
+          if (el) {
+            const handler = () => {
+              const d = this.getStepData(stepId);
+              if (!d[module.arrayField]) d[module.arrayField] = [{}];
+              if (!d[module.arrayField][idx]) d[module.arrayField][idx] = {};
+              d[module.arrayField][idx][key] = el.value;
+              this.setStepData(stepId, d);
+            };
+            el.addEventListener('change', handler);
+            el.addEventListener('input', handler);
+          }
+        });
+      });
+    }
+  }
+
+  // ===== SUBMIT =====
+  async submit() {
+    const { valid, errors } = this.validateCurrentStep();
+    if (!valid) {
+      alert('Corrija os erros antes de enviar:\n\n• ' + errors.join('\n• '));
+      return;
+    }
+
+    if (!confirm('Deseja enviar este orçamento? Verifique se todos os dados estão corretos.')) return;
+
+    const payload = {
+      ...this.formData,
+      _metadata: {
+        product_type: this.selectedProduct,
+        client_id: this.selectedClient?.id,
+        submitted_at: new Date().toISOString(),
+        session_id: currentSessionId,
+        user_id: currentUser?.id,
+        version: 'v2',
+      },
+    };
+
+    try {
+      const res = await fetch(WIZARD_SUBMIT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({
+          sessionId: currentSessionId,
+          userId: currentUser?.id,
+          formData: payload,
+          clientId: this.selectedClient?.id,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json().catch(() => ({}));
+
+      addChatMessage(`✅ **Orçamento enviado com sucesso!**\n\nProtocolo: ${result.protocol || 'Gerando...'}\nCliente: ${this.selectedClient?.razao_social || '—'}\nProduto: ${PRODUCT_TYPES[this.selectedProduct]?.name || '—'}`, 'system');
+
+      // Clear form
+      this.clearStorage();
+    } catch (err) {
+      alert('Erro ao enviar: ' + err.message);
+      addChatMessage(`❌ Falha ao enviar orçamento: ${err.message}`, 'system');
+    }
+  }
+}
+
+// ============================================
+// GLOBAL HELPERS
+// ============================================
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showCreatableDropdown(id) {
+  const dropdown = document.getElementById(id + '_dropdown');
+  if (dropdown) {
+    dropdown.classList.add('open');
+    // Close when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function handler(e) {
+        if (!dropdown.contains(e.target) && e.target.id !== id) {
+          dropdown.classList.remove('open');
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 10);
+  }
+}
+
+function selectCreatableOption(id, value) {
+  const input = document.getElementById(id);
+  if (input) {
+    input.value = value;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  const dropdown = document.getElementById(id + '_dropdown');
+  if (dropdown) dropdown.classList.remove('open');
+}
+
+// ============================================
+// IBGE API
+// ============================================
+let ibgeEstados = [];
+async function fetchIbgeEstados() {
+  try {
+    const res = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
+    ibgeEstados = await res.json();
+  } catch {}
+}
+fetchIbgeEstados();
+
+// ============================================
+// CHAT
+// ============================================
+function addChatMessage(content, type = 'assistant') {
+  const messagesEl = document.getElementById('chatMessages');
+  if (!messagesEl) return;
+  const div = document.createElement('div');
+  div.className = `chat-msg ${type}`;
+  div.innerHTML = `<div class="msg-content">${typeof marked !== 'undefined' ? marked.parse(content) : content}</div>`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function sendChatMessage(message) {
+  if (!message || !message.trim()) return;
+  addChatMessage(message, 'user');
+
+  try {
+    const res = await fetch(AGENT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({
+        message,
+        sessionId: currentSessionId,
+        userId: currentUser?.id,
+        wizardContext: wizard.formData,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    const reply = data.output || data.response || data.message || 'Sem resposta.';
+    addChatMessage(reply, 'assistant');
+  } catch (err) {
+    addChatMessage(`❌ Erro: ${err.message}`, 'system');
+  }
+}
+
+function toggleChat() {
+  document.getElementById('chatPanel')?.classList.toggle('open');
+}
+
+// ============================================
+// AUTH
+// ============================================
+function getAuthHeaders() {
+  const headers = {};
+  try {
+    const raw = authStorage.getItem(AUTH_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const token = parsed?.access_token || parsed?.session?.access_token;
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {}
+  if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+  return headers;
+}
+
+function generateSessionId() {
+  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+async function checkAuth() {
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session && session.user) {
+      const meta = session.user.user_metadata || {};
+      if (meta.company_name && meta.company_name !== COMPANY_NAME) {
+        await sbClient.auth.signOut();
+        showLogin();
+        return;
+      }
+      currentUser = session.user;
+      hideLogin();
+      startApp();
+    } else {
+      showLogin();
+    }
+  } catch { showLogin(); }
+}
+
+sbClient.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    const meta = session.user.user_metadata || {};
+    if (meta.company_name && meta.company_name !== COMPANY_NAME) { sbClient.auth.signOut(); return; }
+    currentUser = session.user;
+    hideLogin();
+    startApp();
+  } else if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    showLogin();
+  }
+});
+
+function showLogin() { document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('appContainer').style.display = 'none'; }
+function hideLogin() { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('appContainer').style.display = 'flex'; }
+function getUserRole() { return currentUser?.user_metadata?.role || 'usuario'; }
+function isAdmin() { return getUserRole() === 'admin'; }
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('usernameInput').value.trim();
+  const pass = document.getElementById('passwordInput').value;
+  const errorEl = document.getElementById('loginError');
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'Entrando...'; errorEl.style.display = 'none';
+  try {
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password: pass });
+    if (error) { errorEl.textContent = error.message === 'Invalid login credentials' ? 'E-mail ou senha inválidos' : error.message; errorEl.style.display = 'block'; }
+    else if (data.user) {
+      const meta = data.user.user_metadata || {};
+      if (meta.company_name && meta.company_name !== COMPANY_NAME) { await sbClient.auth.signOut(); errorEl.textContent = 'Usuário não pertence a esta empresa.'; errorEl.style.display = 'block'; }
+    }
+  } catch { errorEl.textContent = 'Erro de conexão.'; errorEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+});
+
+// ============================================
+// HEALTH CHECK
+// ============================================
+function setConnectionState(online) {
+  const badge = document.getElementById('connectionBadge');
+  const text = document.getElementById('connectionText');
+  if (online) { badge.className = 'connection-badge online'; text.textContent = 'Online'; }
+  else { badge.className = 'connection-badge offline'; text.textContent = 'Offline'; }
+}
+
+async function checkHealth() {
+  try { const r = await fetch(HEALTH_URL, { method: 'GET' }); setConnectionState(r.ok); }
+  catch { setConnectionState(false); }
+}
+
+// ============================================
+// THEME
+// ============================================
+function initTheme() {
+  const saved = localStorage.getItem('wizard_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('wizard_theme', next);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ============================================
+// SIDEBAR
+// ============================================
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  updateSidebarUser();
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+function updateSidebarUser() {
+  if (!currentUser) return;
+  const name = currentUser.user_metadata?.full_name || currentUser.email || '';
+  const role = currentUser.user_metadata?.role || 'usuário';
+  document.getElementById('sidebarUserName').textContent = name;
+  document.getElementById('sidebarUserRole').textContent = role;
+  document.getElementById('sidebarAvatar').textContent = (name[0] || 'U').toUpperCase();
+  if (isAdmin()) document.getElementById('navUsers').style.display = 'flex';
+}
+
+document.getElementById('sidebarOpenBtn').addEventListener('click', openSidebar);
+document.getElementById('sidebarCloseBtn').addEventListener('click', closeSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+document.getElementById('navTheme').addEventListener('click', () => { toggleTheme(); closeSidebar(); });
+document.getElementById('navResetForm').addEventListener('click', () => {
+  if (!confirm('Limpar TODOS os dados do formulário?')) return;
+  closeSidebar(); wizard.clearStorage();
+  addChatMessage('🗑️ Formulário resetado.', 'system');
+});
+document.getElementById('navLogout').addEventListener('click', async () => {
+  closeSidebar(); await sbClient.auth.signOut(); currentUser = null; location.reload();
+});
+
+// ============================================
+// APP START
+// ============================================
+let wizard;
+
+async function setupRepresentanteField() {
+  const field = STEP_MODULES.comercial.fields.representante;
+  if (isAdmin()) {
+    try {
+      const { data } = await sbClient.rpc('saorafael_list_users');
+      if (data && data.length > 0) field.options = data.filter(u => u.confirmed).map(u => u.full_name || u.email);
+    } catch {}
+  } else {
+    const userName = currentUser?.user_metadata?.full_name || currentUser?.email || '';
+    field.options = [userName];
+    field.readOnly = true;
+    // Auto-set representante
+    const data = wizard.getStepData('comercial');
+    data.representante = userName;
+    wizard.setStepData('comercial', data);
+  }
+}
+
+async function startApp() {
+  if (appStarted) return;
+  appStarted = true;
+
+  if (!currentSessionId) currentSessionId = generateSessionId();
+
+  wizard = new WizardEngine();
+  await fetchIbgeEstados();
+  await setupRepresentanteField();
+
+  wizard.render();
+  updateSidebarUser();
+  checkHealth();
+  setInterval(checkHealth, 30000);
+
+  const hasSavedData = localStorage.getItem('wizard_v2_formData');
+  if (hasSavedData) {
+    addChatMessage('🔄 **Dados restaurados!** Continue de onde parou.', 'system');
+  } else {
+    addChatMessage("👋 **Bem-vindo ao Wizard V2!**\n\nSistema com steps dinâmicos por produto, componentes visuais SVG e busca inteligente de clientes.\n\nComece identificando o cliente.", 'system');
+  }
+}
+
+// Chat events
+document.getElementById('chatToggleBtn').addEventListener('click', toggleChat);
+document.getElementById('chatCloseBtn').addEventListener('click', toggleChat);
+document.getElementById('chatSendBtn').addEventListener('click', () => {
+  const input = document.getElementById('chatInput');
+  sendChatMessage(input.value); input.value = '';
+});
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('chatSendBtn').click(); }
+});
+
+// Init
+initTheme();
+if (typeof lucide !== 'undefined') lucide.createIcons();
+marked.setOptions({ breaks: true, gfm: true });
+checkAuth();
+    </script>
+  </body>
+</html>

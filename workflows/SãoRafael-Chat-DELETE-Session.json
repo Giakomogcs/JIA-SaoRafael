@@ -1,0 +1,119 @@
+{
+  "name": "SãoRafael-Chat-DELETE-Session",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "saorafael-session",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1e17e62-7453-47c3-acd9-a798dea0f6aa",
+      "name": "When called - DELETE session",
+      "position": [
+        144,
+        -48
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "a2450955-99fe-4f55-b057-1894f0fca81f"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Substituindo .item por .first() para acessar os dados do primeiro item\nconst sessionId = $input.first().json.query?.sessionId || $input.first().json.queryString?.sessionId;\n\nif (!sessionId) {\n  throw new Error('sessionId query parameter is required');\n}\n\nreturn { sessionId };"
+      },
+      "id": "9d7b9f45-3d58-4c92-bf7b-bba0e74aef78",
+      "name": "Extract Session ID to Delete",
+      "position": [
+        368,
+        -48
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM aspiramaq_chat_message WHERE session_id = '{{ $json.sessionId }}'",
+        "options": {}
+      },
+      "id": "5c1eab2b-415a-4378-8c3d-2a39f7684a0d",
+      "name": "Delete Session from DB",
+      "position": [
+        592,
+        -48
+      ],
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Session deleted successfully' }) }}",
+        "options": {}
+      },
+      "id": "30a48608-c022-4276-b2d3-b44e36b6be51",
+      "name": "Return Success",
+      "position": [
+        816,
+        -48
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called - DELETE session": {
+      "main": [
+        [
+          {
+            "node": "Extract Session ID to Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session ID to Delete": {
+      "main": [
+        [
+          {
+            "node": "Delete Session from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Session from DB": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "372c1e6b-75f0-455a-8b72-32caf2f4ae1a",
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  },
+  "id": "zEd3DMbuoVAeseTG",
+  "tags": []
+}
