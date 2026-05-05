@@ -1,0 +1,193 @@
+{
+  "name": "SãoRafael-DatabaseSetup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "saorafael-DatabaseSetup",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000001",
+      "name": "Webhook DatabaseSetup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1800, -144],
+      "webhookId": "db-setup-001"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "action",
+              "value": "={{ $json.body?.action || 'full_reset' }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "triggeredBy",
+              "value": "={{ $json.body?.triggeredBy || $json.headers?.['x-user-id'] || 'system' }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "timestamp",
+              "value": "={{ $json.body?.timestamp || $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000002",
+      "name": "Extract Params",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1560, -144]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ============================================================\n-- SÃO RAFAEL - DATABASE SETUP (Full Reset + Migration)\n-- Executes all migrations in sequence\n-- ============================================================\n\n-- Enable required extensions\nCREATE EXTENSION IF NOT EXISTS vector;\nCREATE EXTENSION IF NOT EXISTS pg_trgm;\nCREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";\n\n-- ============================================\n-- 1. BASE TABLES (001)\n-- ============================================\nCREATE TABLE IF NOT EXISTS saorafael_users (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  email TEXT UNIQUE NOT NULL,\n  full_name TEXT,\n  role TEXT DEFAULT 'usuario' CHECK (role IN ('admin','usuario','visualizador')),\n  confirmed BOOLEAN DEFAULT FALSE,\n  company_name TEXT DEFAULT 'saorafael',\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS saorafael_wizard_submission (\n  id BIGSERIAL PRIMARY KEY,\n  session_id TEXT UNIQUE,\n  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,\n  client_id UUID,\n  form_data JSONB NOT NULL DEFAULT '{}',\n  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted','processing','completed','error')),\n  protocol TEXT,\n  submitted_at TIMESTAMPTZ DEFAULT NOW(),\n  processed_at TIMESTAMPTZ,\n  notes TEXT,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS saorafael_chat_message (\n  id BIGSERIAL PRIMARY KEY,\n  session_id TEXT NOT NULL,\n  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,\n  message JSONB NOT NULL DEFAULT '{}',\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- ============================================\n-- 2. CLIENTS TABLE (011)\n-- ============================================\nCREATE TABLE IF NOT EXISTS saorafael_clients (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  razao_social TEXT NOT NULL,\n  cnpj_cpf TEXT,\n  inscricao_estadual TEXT,\n  endereco TEXT,\n  cidade TEXT,\n  estado TEXT,\n  cep TEXT,\n  contato_nome TEXT,\n  contato_telefone TEXT,\n  contato_email TEXT,\n  dados_tecnicos TEXT,\n  local_instalacao TEXT,\n  telefone TEXT,\n  email TEXT,\n  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- Indexes for fast search\nCREATE INDEX IF NOT EXISTS idx_saorafael_clients_razao_social_trgm\n  ON saorafael_clients USING gin (razao_social gin_trgm_ops);\nCREATE INDEX IF NOT EXISTS idx_saorafael_clients_cnpj_cpf\n  ON saorafael_clients (cnpj_cpf);\nCREATE INDEX IF NOT EXISTS idx_saorafael_clients_cidade\n  ON saorafael_clients (cidade);\n\n-- client_id column on submissions (safe IF NOT EXISTS)\nDO $$ BEGIN\n  IF NOT EXISTS (\n    SELECT 1 FROM information_schema.columns\n    WHERE table_name = 'saorafael_wizard_submission' AND column_name = 'client_id'\n  ) THEN\n    ALTER TABLE saorafael_wizard_submission ADD COLUMN client_id UUID;\n  END IF;\nEND $$;\n\n-- ============================================\n-- 3. VECTOR STORE: TRUNCATE + RECREATE (RAG Reset)\n-- ============================================\nTRUNCATE TABLE saorafael_documents;\n\n-- Ensure the match function exists\nCREATE OR REPLACE FUNCTION saorafael_match_documents (\n  query_embedding vector(1536),\n  match_count int DEFAULT NULL,\n  filter jsonb DEFAULT '{}'\n) RETURNS TABLE (\n  id bigint,\n  content text,\n  metadata jsonb,\n  similarity float\n)\nLANGUAGE plpgsql\nAS $$\n#variable_conflict use_column\nBEGIN\n  RETURN QUERY\n  SELECT\n    id,\n    content,\n    metadata,\n    1 - (saorafael_documents.embedding <=> query_embedding) AS similarity\n  FROM saorafael_documents\n  WHERE metadata @> filter\n  ORDER BY saorafael_documents.embedding <=> query_embedding\n  LIMIT match_count;\nEND;\n$$;\n\n-- ============================================\n-- 4. CHAT HISTORY: TRUNCATE\n-- ============================================\nTRUNCATE TABLE saorafael_chat_message;\n\n-- ============================================\n-- 5. RLS POLICIES\n-- ============================================\nALTER TABLE saorafael_wizard_submission ENABLE ROW LEVEL SECURITY;\nALTER TABLE saorafael_chat_message ENABLE ROW LEVEL SECURITY;\nALTER TABLE saorafael_clients ENABLE ROW LEVEL SECURITY;\n\n-- Clients RLS\nDO $$ BEGIN\n  DROP POLICY IF EXISTS saorafael_clients_select_policy ON saorafael_clients;\n  DROP POLICY IF EXISTS saorafael_clients_insert_policy ON saorafael_clients;\n  DROP POLICY IF EXISTS saorafael_clients_update_policy ON saorafael_clients;\n  DROP POLICY IF EXISTS saorafael_clients_delete_policy ON saorafael_clients;\n\n  CREATE POLICY saorafael_clients_select_policy ON saorafael_clients\n    FOR SELECT TO authenticated USING (true);\n  CREATE POLICY saorafael_clients_insert_policy ON saorafael_clients\n    FOR INSERT TO authenticated WITH CHECK (created_by = auth.uid());\n  CREATE POLICY saorafael_clients_update_policy ON saorafael_clients\n    FOR UPDATE TO authenticated USING (\n      created_by = auth.uid()\n      OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin')\n    );\n  CREATE POLICY saorafael_clients_delete_policy ON saorafael_clients\n    FOR DELETE TO authenticated USING (\n      EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin')\n    );\nEND $$;\n\n-- Submissions RLS\nDO $$ BEGIN\n  DROP POLICY IF EXISTS saorafael_submission_select_all ON saorafael_wizard_submission;\n  DROP POLICY IF EXISTS saorafael_submission_insert ON saorafael_wizard_submission;\n  DROP POLICY IF EXISTS saorafael_submission_update ON saorafael_wizard_submission;\n  DROP POLICY IF EXISTS saorafael_submission_delete ON saorafael_wizard_submission;\n\n  CREATE POLICY saorafael_submission_select_all ON saorafael_wizard_submission\n    FOR SELECT TO authenticated USING (true);\n  CREATE POLICY saorafael_submission_insert ON saorafael_wizard_submission\n    FOR INSERT TO authenticated WITH CHECK (true);\n  CREATE POLICY saorafael_submission_update ON saorafael_wizard_submission\n    FOR UPDATE TO authenticated USING (\n      user_id = auth.uid()\n      OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin')\n    );\n  CREATE POLICY saorafael_submission_delete ON saorafael_wizard_submission\n    FOR DELETE TO authenticated USING (\n      EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin')\n    );\nEND $$;\n\n-- Chat RLS\nDO $$ BEGIN\n  DROP POLICY IF EXISTS saorafael_chat_select ON saorafael_chat_message;\n  DROP POLICY IF EXISTS saorafael_chat_insert ON saorafael_chat_message;\n  DROP POLICY IF EXISTS saorafael_chat_delete ON saorafael_chat_message;\n\n  CREATE POLICY saorafael_chat_select ON saorafael_chat_message\n    FOR SELECT TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin'));\n  CREATE POLICY saorafael_chat_insert ON saorafael_chat_message\n    FOR INSERT TO authenticated WITH CHECK (true);\n  CREATE POLICY saorafael_chat_delete ON saorafael_chat_message\n    FOR DELETE TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM auth.users u WHERE u.id = auth.uid() AND u.raw_user_meta_data->>'role' = 'admin'));\nEND $$;\n\n-- Service role bypass\nDO $$ BEGIN\n  DROP POLICY IF EXISTS saorafael_clients_service_role ON saorafael_clients;\n  DROP POLICY IF EXISTS saorafael_submission_service_role ON saorafael_wizard_submission;\n  DROP POLICY IF EXISTS saorafael_chat_service_role ON saorafael_chat_message;\n\n  CREATE POLICY saorafael_clients_service_role ON saorafael_clients\n    FOR ALL TO service_role USING (true) WITH CHECK (true);\n  CREATE POLICY saorafael_submission_service_role ON saorafael_wizard_submission\n    FOR ALL TO service_role USING (true) WITH CHECK (true);\n  CREATE POLICY saorafael_chat_service_role ON saorafael_chat_message\n    FOR ALL TO service_role USING (true) WITH CHECK (true);\nEND $$;\n\n-- Return confirmation\nSELECT 'Database setup completed successfully' AS result, NOW() AS executed_at;",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000003",
+      "name": "Run Migrations + Reset RAG",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-1320, -144],
+      "credentials": {
+        "postgres": {
+          "id": "jFjeYH6Nt3aRNkoM",
+          "name": "Supabase_database"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-result",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000004",
+      "name": "Migration OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1080, -144]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Database reset concluído com sucesso. Tabelas recriadas, RAG truncado e histórico de chat limpo. Agora re-ingira os documentos RAG pelo workflow de RAG.', executed_at: $json.executed_at, triggered_by: $('Extract Params').first().json.triggeredBy }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000005",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-840, -240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error?.message || $json.message || 'Migration failed', message: 'Erro ao executar database setup: ' + ($json.error?.message || $json.message || 'Verifique os logs do n8n.') }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-000000000006",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-840, -48]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook DatabaseSetup": {
+      "main": [
+        [
+          {
+            "node": "Extract Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params": {
+      "main": [
+        [
+          {
+            "node": "Run Migrations + Reset RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Migrations + Reset RAG": {
+      "main": [
+        [
+          {
+            "node": "Migration OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Migration OK?": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "v1-20250101-000000",
+  "meta": {
+    "instanceId": "03d32a206f2d8840fce482e6c587726f18775bd9177e9401c00ca76d3086ad41"
+  },
+  "id": "DBSetup001",
+  "tags": []
+}

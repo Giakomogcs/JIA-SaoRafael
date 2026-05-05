@@ -57,6 +57,12 @@
               "name": "userId",
               "value": "={{ $json.headers?.['x-user-id'] || $json.body?.userId || '' }}",
               "type": "string"
+            },
+            {
+              "id": "s7",
+              "name": "clientId",
+              "value": "={{ $json.body?.clientId || $json.body?.formData?._client_id || '' }}",
+              "type": "string"
             }
           ]
         },
@@ -74,9 +80,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Generate protocol number: SR-YYYYMM-NNNN\nWITH next_seq AS (\n  SELECT COALESCE(MAX(\n    CAST(SUBSTRING(protocol FROM '-([0-9]+)$') AS INTEGER)\n  ), 0) + 1 AS seq\n  FROM saorafael_wizard_submission\n  WHERE protocol LIKE 'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-%'\n)\nINSERT INTO saorafael_wizard_submission (\n  session_id,\n  user_id,\n  form_data,\n  status,\n  protocol,\n  submitted_at,\n  processed_at,\n  notes\n)\nSELECT\n  $1,\n  CASE WHEN $2 IS NULL OR TRIM($2) = '' OR LOWER(TRIM($2)) = 'null' THEN NULL ELSE TRIM($2)::UUID END,\n  $3::JSONB,\n  'submitted',\n  'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-' || LPAD(next_seq.seq::TEXT, 4, '0'),\n  $4::TIMESTAMPTZ,\n  NOW(),\n  $5\nFROM next_seq\nON CONFLICT (session_id) DO UPDATE SET\n  form_data = EXCLUDED.form_data,\n  submitted_at = EXCLUDED.submitted_at,\n  processed_at = NOW(),\n  status = 'submitted',\n  notes = EXCLUDED.notes\nRETURNING id, protocol, session_id, status, submitted_at, processed_at;",
+        "query": "-- Generate protocol number: SR-YYYYMM-NNNN\nWITH next_seq AS (\n  SELECT COALESCE(MAX(\n    CAST(SUBSTRING(protocol FROM '-([0-9]+)$') AS INTEGER)\n  ), 0) + 1 AS seq\n  FROM saorafael_wizard_submission\n  WHERE protocol LIKE 'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-%'\n)\nINSERT INTO saorafael_wizard_submission (\n  session_id,\n  user_id,\n  client_id,\n  form_data,\n  status,\n  protocol,\n  submitted_at,\n  processed_at,\n  notes\n)\nSELECT\n  $1,\n  CASE WHEN $2 IS NULL OR TRIM($2) = '' OR LOWER(TRIM($2)) = 'null' THEN NULL ELSE TRIM($2)::UUID END,\n  CASE WHEN $6 IS NULL OR TRIM($6) = '' OR LOWER(TRIM($6)) = 'null' THEN NULL ELSE TRIM($6)::UUID END,\n  $3::JSONB,\n  'submitted',\n  'SR-' || TO_CHAR(NOW(), 'YYYYMM') || '-' || LPAD(next_seq.seq::TEXT, 4, '0'),\n  $4::TIMESTAMPTZ,\n  NOW(),\n  $5\nFROM next_seq\nON CONFLICT (session_id) DO UPDATE SET\n  form_data = EXCLUDED.form_data,\n  client_id = EXCLUDED.client_id,\n  submitted_at = EXCLUDED.submitted_at,\n  processed_at = NOW(),\n  status = 'submitted',\n  notes = EXCLUDED.notes\nRETURNING id, protocol, session_id, status, submitted_at, processed_at;",
         "options": {
-          "queryReplacement": "={{ [$json.sessionId, $json.userId, $json.formData, $json.submittedAt, 'Enviado por: ' + $json.submittedBy + ' (' + $json.userRole + ')'] }}"
+          "queryReplacement": "={{ [$json.sessionId, $json.userId, $json.formData, $json.submittedAt, 'Enviado por: ' + $json.submittedBy + ' (' + $json.userRole + ')', $json.clientId] }}"
         }
       },
       "id": "05221d66-89aa-4c58-a816-2f4d60a4c65a",
