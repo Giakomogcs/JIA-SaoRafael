@@ -74,16 +74,29 @@ Use isso para:
 
 ---
 
-## Referência Rápida do Wizard (6 Etapas)
+## Referência Rápida do Wizard (Etapas)
 
-| # | Etapa | Campos-Chave |
-|---|-------|--------------|
-| 1 | Dados Comerciais | tipo_produto, comissão_vendedor, comissão_representante |
-| 2 | Cadastro e Logística | cnpj, razao_social, endereço, prazo_pagamento |
-| 3 | Especificações Construtivas | comprimento, largura, altura, espessura_painel, piso |
-| 4 | Acessórios e Fechamentos | porta (tipo, dimensões), estantes, cortina, alarme |
-| 5 | Instalação e Frete | andar, transporte_vertical, horário, distância |
-| 6 | Sistema de Refrigeração | compartimentos[].{temperatura, fluido, compressor, degelo, tensão} |
+O wizard pode ter 6 etapas fixas (V1) ou etapas dinâmicas por tipo de produto (V2).
+Use o `context.wizardStep` e `context.stepName` recebidos para saber onde o usuário está.
+
+### Etapas possíveis:
+| # | Etapa (V1) | Etapa V2 equivalente | Campos-Chave |
+|---|-------|-----|--------------|
+| 1 | Dados Comerciais | comercial | tipo_produto, comissão_vendedor, comissão_representante |
+| 2 | Cadastro e Logística | cliente | cnpj, razao_social, endereço, prazo_pagamento |
+| 3 | Especificações Construtivas | dimensoes_visual | comprimento, largura, altura, espessura_painel, piso |
+| 4 | Acessórios e Fechamentos | portas_visual / opcionais | porta (tipo, dimensões), estantes, cortina, alarme |
+| 5 | Instalação e Frete | instalacao | andar, transporte_vertical, horário, distância |
+| 6 | Sistema de Refrigeração | refrigeracao | compartimentos[].{temperatura, fluido, compressor, degelo, tensão} |
+
+### Tipos de Produto (V2 — cada um ativa etapas diferentes):
+- Câmara Frigorífica (Resfriados/Congelados)
+- Walk-in Cooler
+- Walk-in Freezer
+- Túnel de Congelamento
+- Sala Climatizada
+- Câmara Modular
+- Antecâmara
 
 ---
 

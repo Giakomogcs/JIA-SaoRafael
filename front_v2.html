@@ -1697,10 +1697,15 @@ async function sendChatMessage(message) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
-        message,
+        chatInput: message,
         sessionId: currentSessionId,
         userId: currentUser?.id,
-        wizardContext: wizard.formData,
+        context: JSON.stringify({
+          wizardStep: wizard.currentStepIndex,
+          stepName: wizard.steps[wizard.currentStepIndex] || '',
+          product: wizard.selectedProduct,
+          currentFormData: wizard.formData,
+        }),
       }),
     });
     const data = await res.json().catch(() => ({}));

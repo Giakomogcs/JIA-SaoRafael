@@ -33,7 +33,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * \nFROM aspiramaq_chat_message \nWHERE session_id = '{{ $json.sessionId }}' \nORDER BY id ASC;",
+        "query": "SELECT * \nFROM saorafael_chat_message \nWHERE session_id = '{{ $json.sessionId }}' \nORDER BY id ASC;",
         "options": {}
       },
       "id": "462dc58b-d8b9-4c13-b259-da6a41782f14",

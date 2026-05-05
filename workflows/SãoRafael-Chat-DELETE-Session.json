@@ -34,7 +34,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM aspiramaq_chat_message WHERE session_id = '{{ $json.sessionId }}'",
+        "query": "DELETE FROM saorafael_chat_message WHERE session_id = '{{ $json.sessionId }}'",
         "options": {}
       },
       "id": "5c1eab2b-415a-4378-8c3d-2a39f7684a0d",

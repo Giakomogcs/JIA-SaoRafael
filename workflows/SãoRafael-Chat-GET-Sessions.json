@@ -20,7 +20,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  session_id, \n  MIN(created_at) as data_inicio,\n  (SELECT message->>'content' -- Extrai apenas o texto da mensagem\n   FROM aspiramaq_chat_message aspiramaq_cm2 \n   WHERE aspiramaq_cm2.session_id = aspiramaq_cm.session_id \n   AND aspiramaq_cm2.message->>'type' = 'human' -- Filtra dentro do JSON da coluna 'message'\n   ORDER BY id DESC LIMIT 1) as titulo\nFROM aspiramaq_chat_message aspiramaq_cm\nGROUP BY session_id\nORDER BY data_inicio DESC;",
+        "query": "SELECT \n  session_id, \n  MIN(created_at) as data_inicio,\n  (SELECT message->>'content'\n   FROM saorafael_chat_message sr_cm2 \n   WHERE sr_cm2.session_id = sr_cm.session_id \n   AND sr_cm2.message->>'type' = 'human'\n   ORDER BY id DESC LIMIT 1) as titulo\nFROM saorafael_chat_message sr_cm\nGROUP BY session_id\nORDER BY data_inicio DESC;",
         "options": {}
       },
       "id": "d195685f-a582-4650-8934-0582694ecbf7",
