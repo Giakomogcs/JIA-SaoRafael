@@ -1073,4 +1073,588 @@ function onLockedFieldEdit(fieldName, newValue, originalValue) {
 
 ---
 
+## 17. Análise Inteligente de Viabilidade (Reality Check Engine)
+
+### 17.1 Objetivo
+
+Conforme o representante preenche o wizard, o agente deve **analisar em tempo real** se as dimensões, acessórios e usos pretendidos da câmara fazem sentido em conjunto, evitando orçamentos com configurações:
+
+- Tecnicamente impossíveis (ex: piso "sem isolamento" a -18°C)
+- Subdimensionadas (ex: câmara de 80m³ com porta de 800mm para uso com empilhadeira)
+- Superdimensionadas (ex: cliente quer guardar 200kg de carne mas pediu uma câmara de 60m³)
+- Comercialmente inviáveis (ex: hermético com carga térmica acima de 15.000 Kcal/h)
+- Fora da grade modular São Rafael (ex: 3,50m de comprimento — não é múltiplo de 0,28)
+
+A ideia é que o representante receba **feedback imediato e didático**, similar a um "code linter", antes de avançar para o próximo step.
+
+### 17.2 Arquitetura — Camadas de Validação
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  CAMADA 1 — Validação Local (síncrona, instantânea)              │
+│  ├── ModularGridValidator     (grade 0,28m / altura 0,05m)      │
+│  ├── PanelThicknessValidator  (espessura vs temperatura)        │
+│  ├── FloorValidator           (piso vs temperatura/uso)         │
+│  ├── DoorValidator            (porta vs temperatura/uso)        │
+│  ├── RefrigerationValidator   (compressor vs carga térmica)    │
+│  ├── AccessoryValidator       (acessórios obrigatórios/proib.) │
+│  └── CapacityValidator        (volume vs uso pretendido)        │
+│                                                                  │
+│  CAMADA 2 — Cálculos Derivados (motor de física)                 │
+│  ├── ThermalLoadCalculator    (carga térmica + correções)       │
+│  ├── VolumeCalculator         (volume útil descontando estantes)│
+│  ├── PowerEstimator           (potência elétrica estimada kW)   │
+│  └── UseCaseFitScore          (0-100, encaixe com o uso)        │
+│                                                                  │
+│  CAMADA 3 — Análise por IA (assíncrona, deep reasoning)          │
+│  ├── Validação cruzada multi-step                               │
+│  ├── Sugestões de otimização                                    │
+│  ├── Detecção de incoerências comerciais                        │
+│  └── Comparação com casos similares (RAG)                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+A Camada 1 e 2 rodam 100% no front-end (sem latência). A Camada 3 é acionada ao final de cada step (debounce ~800ms) e na revisão final.
+
+### 17.3 Severidade dos Alertas
+
+| Nível | Cor | Comportamento | Exemplo |
+|-------|-----|---------------|---------|
+| `error` | 🔴 Vermelho | **Bloqueia avanço** do step | Piso "sem isolamento" + temperatura -18°C |
+| `warning` | 🟠 Laranja | Avança, mas exige confirmação | Compressão hermético com carga 14.500 Kcal/h (próximo do limite) |
+| `info` | 🔵 Azul | Apenas informativo | "Sua câmara terá ~39m³ de volume útil" |
+| `suggestion` | 🟢 Verde | Recomendação otimizada | "Usar PIR 125mm em vez de PU 150mm: mesma performance, 17% mais leve" |
+
+### 17.4 Regras de Validação (Catálogo)
+
+#### A. Grade Modular (`ModularGridValidator`)
+
+```javascript
+function validateModularGrid({ comprimento, largura, altura }) {
+  const issues = [];
+  const checkPlanta = (label, val) => {
+    const mod = (val - 1.12) / 0.28;
+    if (Math.abs(mod - Math.round(mod)) > 0.01) {
+      const sugLow  = 1.12 + Math.floor(mod) * 0.28;
+      const sugHigh = 1.12 + Math.ceil(mod)  * 0.28;
+      issues.push({
+        level: 'error',
+        field: label,
+        message: `${label} ${val}m fora da grade modular. Sugestões: ${sugLow.toFixed(2)}m ou ${sugHigh.toFixed(2)}m.`,
+        autofix: { value: sugHigh.toFixed(2) }
+      });
+    }
+  };
+  checkPlanta('comprimento', comprimento);
+  checkPlanta('largura', largura);
+
+  if (altura < 2.00 || altura > 6.00) {
+    issues.push({ level: 'error', field: 'altura',
+      message: `Altura ${altura}m fora dos limites (2,00m a 6,00m).` });
+  } else if (Math.abs((altura * 100) % 5) > 0.5) {
+    issues.push({ level: 'warning', field: 'altura',
+      message: `Altura deve ser múltipla de 0,05m.` });
+  }
+  return issues;
+}
+```
+
+#### B. Espessura de Painel × Temperatura (`PanelThicknessValidator`)
+
+Mapa mínimo (PU; PIR permite -25mm):
+
+```javascript
+const MIN_THICKNESS_PU = [
+  { tempMax:  25, tempMin:  15, mm:  50 },
+  { tempMax:  15, tempMin:   5, mm:  75 },
+  { tempMax:   5, tempMin:   0, mm:  75 },
+  { tempMax:   0, tempMin:  -5, mm: 100 },
+  { tempMax:  -5, tempMin: -18, mm: 125 },
+  { tempMax: -18, tempMin: -25, mm: 150 },
+  { tempMax: -25, tempMin: -35, mm: 175 },
+  { tempMax: -35, tempMin: -45, mm: 200 },
+];
+
+function validatePanelThickness({ temperatura_setpoint, espessura_painel_mm, tipo_isolamento }) {
+  const row = MIN_THICKNESS_PU.find(r => temperatura_setpoint >= r.tempMin && temperatura_setpoint < r.tempMax);
+  const minMm = (tipo_isolamento === 'PIR') ? row.mm - 25 : row.mm;
+  if (espessura_painel_mm < minMm) {
+    return [{
+      level: 'error',
+      message: `Espessura ${espessura_painel_mm}mm é insuficiente para ${temperatura_setpoint}°C. Mínimo: ${minMm}mm (${tipo_isolamento}).`,
+      autofix: { espessura_painel_mm: minMm }
+    }];
+  }
+  if (espessura_painel_mm > minMm + 50) {
+    return [{
+      level: 'suggestion',
+      message: `Espessura ${espessura_painel_mm}mm pode estar superdimensionada. ${minMm}mm já atende ${temperatura_setpoint}°C — economia de ~${Math.round((espessura_painel_mm - minMm)/espessura_painel_mm*100)}% em material.`
+    }];
+  }
+  return [];
+}
+```
+
+#### C. Piso × Temperatura × Uso (`FloorValidator`)
+
+```javascript
+function validateFloor({ piso, temperatura_setpoint, area_piso_m2, usa_empilhadeira }) {
+  const issues = [];
+  if (temperatura_setpoint < 0 && piso === 'sem_piso') {
+    issues.push({ level: 'error', field: 'piso',
+      message: `Temperatura ${temperatura_setpoint}°C exige piso isolado. "Sem piso" provoca condensação e destruição do contrapiso.`,
+      autofix: { piso: temperatura_setpoint < -18 ? 'piso_reforcado_100mm' : 'piso_isolado_75mm' }
+    });
+  }
+  if (usa_empilhadeira && piso !== 'piso_reforcado') {
+    issues.push({ level: 'error', field: 'piso',
+      message: `Operação com empilhadeira (carga >5 ton/m²) requer piso reforçado.` });
+  }
+  if (area_piso_m2 > 9 && piso === 'sem_piso' && temperatura_setpoint >= 0) {
+    issues.push({ level: 'warning',
+      message: `Câmaras > 9m² sem piso isolado: tempo de descida de temperatura aumenta significativamente.` });
+  }
+  if (temperatura_setpoint < -18 && piso === 'piso_isolado_75mm') {
+    issues.push({ level: 'warning',
+      message: `Para -18°C ou menos, recomenda-se piso 100mm + barreira de vapor + aquecimento de solo.` });
+  }
+  return issues;
+}
+```
+
+#### D. Carga Térmica e Compressor (`ThermalLoadCalculator` + `RefrigerationValidator`)
+
+```javascript
+function calculateThermalLoad({ volume_m3, temperatura_setpoint, fatores }) {
+  const FACTOR_TABLE = [
+    { tempMin:  15, tempMax:  25, factor: 30 },
+    { tempMin:   5, tempMax:  15, factor: 50 },
+    { tempMin:   0, tempMax:   5, factor: 70 },
+    { tempMin: -18, tempMax:   0, factor: 95 },
+    { tempMin: -25, tempMax: -18, factor: 125 },
+    { tempMin: -35, tempMax: -25, factor: 250 },
+    { tempMin: -45, tempMax: -35, factor: 380 },
+  ];
+  const row = FACTOR_TABLE.find(r => temperatura_setpoint >= r.tempMin && temperatura_setpoint < r.tempMax);
+  let carga = volume_m3 * row.factor;
+
+  // Correções
+  if (fatores.porta_alta_frequencia) carga *= 1.25;
+  if (fatores.produto_quente)        carga *= 1.30;
+  if (fatores.iluminacao_intensa)    carga *= 1.08;
+  if (fatores.muitas_pessoas)        carga *= 1.12;
+  if (fatores.empilhadeira_interna)  carga *= 1.12;
+  if (fatores.parede_externa_sol)    carga *= 1.15;
+
+  carga *= 1.10; // fator de segurança
+
+  return { kcal_h: Math.round(carga), kw_termico: +(carga / 860).toFixed(2) };
+}
+
+function validateCompressor({ kcal_h, tipo_compressor, tensao }) {
+  const issues = [];
+  const ranges = {
+    hermetico:     [500, 15000],
+    scroll:        [5000, 50000],
+    semi_hermetico:[10000, 150000],
+    parafuso:      [50000, 500000],
+  };
+  const [min, max] = ranges[tipo_compressor] || [0, Infinity];
+  if (kcal_h < min) {
+    issues.push({ level: 'warning', message: `Compressor ${tipo_compressor} superdimensionado para ${kcal_h} Kcal/h. Considere uma classe abaixo.` });
+  }
+  if (kcal_h > max) {
+    issues.push({ level: 'error', message: `Compressor ${tipo_compressor} subdimensionado: carga ${kcal_h} Kcal/h excede máximo de ${max}.`, autofix: { tipo_compressor: kcal_h > 150000 ? 'parafuso' : kcal_h > 50000 ? 'semi_hermetico' : 'scroll' } });
+  }
+  if ((tipo_compressor === 'parafuso' || tipo_compressor === 'semi_hermetico') && tensao === '220V Mono') {
+    issues.push({ level: 'error', message: `${tipo_compressor} não existe em 220V Monofásico. Requer 380V ou 440V Trifásico.` });
+  }
+  return issues;
+}
+```
+
+#### E. Porta × Temperatura × Uso (`DoorValidator`)
+
+```javascript
+function validateDoor({ porta, temperatura_setpoint, altura_camara, largura_camara, usa_empilhadeira, usa_paleteira, frequencia_abertura_hora }) {
+  const issues = [];
+
+  // Vedação proibida em baixa temperatura
+  if (temperatura_setpoint < -10 && ['vai_e_vem', 'expositora_vidro'].includes(porta.tipo)) {
+    issues.push({ level: 'error', field: 'porta_tipo',
+      message: `Porta "${porta.tipo}" é proibida abaixo de -10°C (vedação inadequada, condensação, gelo).`,
+      autofix: { tipo: 'giratoria_isotermica' } });
+  }
+
+  // Alturas/larguras
+  const alturaMaxima = (altura_camara * 1000) - 200;
+  if (porta.altura_mm > alturaMaxima) {
+    issues.push({ level: 'error',
+      message: `Altura da porta (${porta.altura_mm}mm) excede limite (câmara ${altura_camara}m → max ${alturaMaxima}mm).` });
+  }
+  const larguraMinCamara = Math.min(largura_camara, /*comprimento já validado*/ 999) * 1000;
+  if (porta.largura_mm > larguraMinCamara - 300) {
+    issues.push({ level: 'error',
+      message: `Largura da porta (${porta.largura_mm}mm) deixa menos de 300mm de montante na parede.` });
+  }
+
+  // Uso vs dimensão da porta
+  if (usa_empilhadeira && (porta.largura_mm < 2400 || porta.altura_mm < 3000)) {
+    issues.push({ level: 'error',
+      message: `Empilhadeira exige porta mínima 2400×3000mm. Atual: ${porta.largura_mm}×${porta.altura_mm}mm.` });
+  }
+  if (usa_paleteira && !usa_empilhadeira && (porta.largura_mm < 1500 || porta.altura_mm < 2200)) {
+    issues.push({ level: 'warning',
+      message: `Paleteira exige porta mínima 1500×2200mm. Atual: ${porta.largura_mm}×${porta.altura_mm}mm.` });
+  }
+
+  // Cortina PVC em alta frequência
+  if (frequencia_abertura_hora >= 20 && !porta.cortina_pvc) {
+    issues.push({ level: 'suggestion',
+      message: `Frequência ${frequencia_abertura_hora} aberturas/h: instalar cortina PVC reduz consumo em ~15-25%.` });
+  }
+  return issues;
+}
+```
+
+#### F. Capacidade × Uso Pretendido (`CapacityValidator` + `UseCaseFitScore`)
+
+Esta é a validação **mais "humana"** — verifica se o tamanho da câmara faz sentido para o que o cliente declara que vai armazenar.
+
+```javascript
+// Densidade de armazenamento (kg/m³ de volume útil) por categoria
+const STORAGE_DENSITY = {
+  carne_carcaca:     180,  // pendurada, com folga
+  carne_caixa:       350,
+  pescado_caixa:     400,
+  laticinios:        300,
+  hortifruti:        250,  // requer ventilação
+  congelados_caixa:  450,
+  sorvete:           500,
+  bebidas_garrafa:   600,
+  farmacia_caixa:    250,
+  flores:             80,  // muito volumoso
+};
+
+function validateCapacity({ volume_m3, categoria_produto, kg_estoque_alvo, num_estantes, tem_corredor }) {
+  const issues = [];
+  const densidade = STORAGE_DENSITY[categoria_produto] || 250;
+
+  // Volume útil = 60-70% do bruto (corredores, evaporador, folga)
+  const fatorUtil = tem_corredor ? 0.55 : 0.70;
+  const volumeUtil = volume_m3 * fatorUtil;
+  const capacidadeKg = Math.round(volumeUtil * densidade);
+
+  if (kg_estoque_alvo) {
+    const ratio = kg_estoque_alvo / capacidadeKg;
+    if (ratio > 1.10) {
+      issues.push({ level: 'error',
+        message: `Câmara subdimensionada: comporta ~${capacidadeKg}kg, mas precisa de ${kg_estoque_alvo}kg (${Math.round(ratio*100)}% da capacidade).`,
+        autofix_suggestion: `Aumentar comprimento ou largura em ~${Math.ceil((ratio-1)*100)}%.`
+      });
+    } else if (ratio < 0.40) {
+      issues.push({ level: 'warning',
+        message: `Câmara muito superdimensionada: comporta ~${capacidadeKg}kg, mas usará apenas ${kg_estoque_alvo}kg (${Math.round(ratio*100)}%). Custo desnecessário em material e refrigeração.`
+      });
+    } else if (ratio < 0.65) {
+      issues.push({ level: 'info',
+        message: `Você usará ~${Math.round(ratio*100)}% da capacidade. Há folga para crescimento.`
+      });
+    } else {
+      issues.push({ level: 'info',
+        message: `Câmara bem dimensionada: ${kg_estoque_alvo}kg em ~${capacidadeKg}kg de capacidade (${Math.round(ratio*100)}%).`
+      });
+    }
+  }
+
+  // Coerência número de estantes
+  if (num_estantes && volume_m3 > 0) {
+    const estantes_por_m3 = num_estantes / volume_m3;
+    if (estantes_por_m3 > 0.5) {
+      issues.push({ level: 'warning',
+        message: `Densidade de estantes alta (${num_estantes} em ${volume_m3.toFixed(1)}m³). Pode prejudicar circulação de ar e descida de temperatura.` });
+    }
+  }
+  return issues;
+}
+```
+
+#### G. Coerência de Acessórios (`AccessoryValidator`)
+
+```javascript
+function validateAccessories({ temperatura_setpoint, opcionais, categoria_produto, segmento_cliente }) {
+  const issues = [];
+
+  // Alarme obrigatório em farmácia/hospital
+  if (['farmaceutica', 'hospitalar', 'banco_sangue', 'vacinas'].includes(segmento_cliente)
+      && !opcionais.alarme?.ativo) {
+    issues.push({ level: 'error',
+      message: `Segmento ${segmento_cliente}: ANVISA exige alarme + datalogger.`,
+      autofix: { 'opcionais.alarme': { ativo: true, tipo: 'Sonoro+Visual+Datalogger Certificado' } } });
+  }
+
+  // Cortina anti-inseto + freezer = inviável
+  if (temperatura_setpoint < 0 && opcionais.cortina_pvc?.tipo === 'anti_inseto') {
+    issues.push({ level: 'error',
+      message: `Cortina anti-inseto não funciona abaixo de 0°C. Use cortina Polar.`,
+      autofix: { 'opcionais.cortina_pvc.tipo': 'polar' } });
+  }
+
+  // Iluminação extra sem necessidade
+  if (opcionais.iluminacao_extra?.ativo && opcionais.alarme?.ativo === false
+      && segmento_cliente === 'restaurante') {
+    issues.push({ level: 'suggestion',
+      message: `Cliente restaurante: alarme tem mais retorno que iluminação extra (perda de produto).` });
+  }
+  return issues;
+}
+```
+
+### 17.5 Use Case Fit Score (0–100)
+
+Pontuação consolidada que aparece no Step de Revisão como um "selo de qualidade" do orçamento.
+
+```javascript
+function computeFitScore(formData) {
+  const allIssues = runAllValidators(formData);
+  let score = 100;
+  for (const it of allIssues) {
+    if (it.level === 'error')      score -= 20;
+    if (it.level === 'warning')    score -= 7;
+    if (it.level === 'info')       score -= 0;
+    if (it.level === 'suggestion') score -= 2;
+  }
+  // Bônus por preenchimento completo + coerência cruzada
+  if (formData._client_id)                score += 3;
+  if (formData.dimensoes && formData.compartimentos?.length) score += 2;
+  return Math.max(0, Math.min(100, score));
+}
+
+// Faixas de qualidade
+// 90-100: Excelente — pode submeter sem ressalvas
+// 70-89:  Bom — alguns avisos, revisar
+// 50-69:  Atenção — múltiplos avisos, requer confirmação
+// 0-49:   Bloqueado — erros críticos, não pode enviar
+```
+
+### 17.6 Engine Orquestrador (`RealityCheckEngine`)
+
+```javascript
+class RealityCheckEngine {
+  constructor(formData) {
+    this.formData = formData;
+    this.issues = [];
+    this.derived = {};
+  }
+
+  run() {
+    const { dimensoes, compartimentos, portas, opcionais, uso, instalacao } = this.formData;
+
+    // Cálculos derivados (Camada 2)
+    if (dimensoes) {
+      this.derived.volume_m3 = dimensoes.volume_m3;
+      this.derived.area_piso_m2 = dimensoes.area_piso_m2;
+    }
+    if (compartimentos?.[0] && dimensoes) {
+      const carga = calculateThermalLoad({
+        volume_m3: this.derived.volume_m3,
+        temperatura_setpoint: compartimentos[0].temperatura_setpoint,
+        fatores: this.collectThermalFactors()
+      });
+      this.derived.carga_termica = carga;
+    }
+
+    // Validações locais (Camada 1)
+    if (dimensoes) this.collect(validateModularGrid(dimensoes));
+    if (dimensoes && compartimentos?.[0]) {
+      this.collect(validatePanelThickness({
+        temperatura_setpoint: compartimentos[0].temperatura_setpoint,
+        espessura_painel_mm: dimensoes.espessura_painel_mm,
+        tipo_isolamento: dimensoes.tipo_isolamento,
+      }));
+      this.collect(validateFloor({
+        piso: dimensoes.piso,
+        temperatura_setpoint: compartimentos[0].temperatura_setpoint,
+        area_piso_m2: this.derived.area_piso_m2,
+        usa_empilhadeira: uso?.empilhadeira,
+      }));
+    }
+    (portas || []).forEach(p => this.collect(validateDoor({ porta: p, /* ... */ })));
+    if (this.derived.carga_termica && compartimentos?.[0]) {
+      this.collect(validateCompressor({
+        kcal_h: this.derived.carga_termica.kcal_h,
+        tipo_compressor: compartimentos[0].tipo_compressor,
+        tensao: instalacao?.tensao,
+      }));
+    }
+    if (uso) this.collect(validateCapacity({ volume_m3: this.derived.volume_m3, ...uso }));
+    this.collect(validateAccessories({ ...this.formData }));
+
+    this.derived.fit_score = computeFitScore(this.formData);
+    return { issues: this.issues, derived: this.derived };
+  }
+
+  collect(arr) { this.issues.push(...(arr || [])); }
+  collectThermalFactors() {
+    const f = {};
+    const portas = this.formData.portas || [];
+    f.porta_alta_frequencia = portas.some(p => (p.frequencia_abertura_hora || 0) > 10);
+    f.produto_quente = !!this.formData.uso?.produto_quente_entrada;
+    f.iluminacao_intensa = !!this.formData.opcionais?.iluminacao_extra?.ativo;
+    f.muitas_pessoas = (this.formData.uso?.pessoas_simultaneas || 0) > 3;
+    f.empilhadeira_interna = !!this.formData.uso?.empilhadeira;
+    f.parede_externa_sol = !!this.formData.instalacao?.parede_exposta_sol;
+    return f;
+  }
+}
+```
+
+### 17.7 Novo Step: "Uso Pretendido" (Pré-Refrigeração)
+
+Para alimentar o `CapacityValidator`, é necessário coletar **o que o cliente vai colocar dentro da câmara**. Esse step entra entre Dimensões e Refrigeração.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  USO DA CÂMARA                                                   │
+│                                                                  │
+│  Categoria do Produto: [▼ Carne em caixa]                       │
+│  Estoque alvo (kg):    [______ kg]   ou   [Estimar pelo volume] │
+│  Giro semanal:         [▼ Alto / Médio / Baixo]                 │
+│  Produto entra a:      [▼ Resfriado / Ambiente / Quente]        │
+│                                                                  │
+│  ┌─ Operação ────────────────────────────────────────────────┐  │
+│  │ ☐ Empilhadeira elétrica                                   │  │
+│  │ ☐ Paleteira manual                                        │  │
+│  │ ☐ Movimentação só com carrinho                            │  │
+│  │ ☐ Pessoas simultâneas:  [▼ 1-2 / 3-5 / >5]              │  │
+│  │ Aberturas de porta/hora: [▼ <5 / 5-10 / 10-20 / >20]    │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌─ 📊 Análise em tempo real ───────────────────────────────┐   │
+│  │ Volume: 39,25m³  →  Volume útil: ~21,6m³                  │   │
+│  │ Capacidade estimada: ~7.560kg de carne em caixa           │   │
+│  │ Você informou: 5.000kg (66% da capacidade)                │   │
+│  │ ✅ Bem dimensionada — folga para giro semanal alto       │   │
+│  │                                                            │   │
+│  │ Carga térmica estimada: 4.870 Kcal/h (5,7 kW)             │   │
+│  │ Compressor sugerido: Scroll 220/380V Trifásico            │   │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 17.8 UI do Painel de Análise (Sidebar Persistente)
+
+Em todos os steps a partir de Dimensões, um painel lateral fixo mostra o estado atual da análise:
+
+```
+┌────────────────────────────┐
+│  📊 ANÁLISE DA CÂMARA     │
+│  ─────────────────────     │
+│  Volume:      39,25 m³     │
+│  Área piso:   13,52 m²     │
+│  Carga térm.: 4.870 Kcal/h │
+│  Potência:    5,7 kW       │
+│  Capacidade:  ~7.560 kg    │
+│                            │
+│  Fit Score: ████████░ 86   │
+│                            │
+│  ⚠️ 2 avisos               │
+│  🔴 0 erros                │
+│  💡 1 sugestão             │
+│                            │
+│  [Ver Detalhes ▼]          │
+└────────────────────────────┘
+```
+
+### 17.9 Integração com IA (Camada 3)
+
+A IA não substitui as validações locais — ela **complementa** com raciocínio que regras determinísticas não capturam:
+
+- "Cliente é açougue de bairro mas pediu túnel de congelamento — provável erro de produto."
+- "Câmara tem 80m³ mas cliente disse 'pequena loja'. Conferir se a área comporta."
+- "Combinação Inox 304 + R-134a + farmacêutica — falta especificar protocolo IQ/OQ."
+
+**Prompt de validação cruzada** (estende `system_prompt_wizard_validation.md`):
+
+```
+Você recebe o formData e o resultado de RealityCheckEngine.run().
+Sua tarefa: identificar APENAS incoerências que as regras locais não capturaram.
+Retorne JSON: { "ai_issues": [{level, field, message, suggestion}] }
+NÃO repita issues já presentes em derived.issues.
+NÃO sugira nada já em derived.issues.autofix.
+```
+
+A chamada acontece com debounce de 800ms ao final de cada step e novamente no Step de Revisão.
+
+### 17.10 Schema de Output (`formData._reality_check`)
+
+```javascript
+{
+  _reality_check: {
+    timestamp: '2026-05-05T14:30:00Z',
+    derived: {
+      volume_m3: 39.25,
+      area_piso_m2: 13.52,
+      carga_termica: { kcal_h: 4870, kw_termico: 5.7 },
+      capacidade_kg: 7560,
+      fit_score: 86,
+    },
+    issues: [
+      {
+        level: 'warning',
+        category: 'door',
+        field: 'portas[0].largura_mm',
+        message: 'Empilhadeira exige porta mínima 2400×3000mm.',
+        autofix: { 'portas[0].largura_mm': 2400, 'portas[0].altura_mm': 3000 },
+        source: 'local',
+      },
+      {
+        level: 'suggestion',
+        category: 'panel',
+        message: 'PIR 125mm equivale a PU 150mm — economia de peso.',
+        source: 'local',
+      },
+      {
+        level: 'warning',
+        category: 'cross_step',
+        message: 'Cliente é açougue de bairro mas pediu túnel de congelamento.',
+        source: 'ai',
+      }
+    ],
+    blocking: false,  // true se algum issue for level='error'
+  }
+}
+```
+
+### 17.11 Bloqueio de Submit
+
+```javascript
+function canSubmit(formData) {
+  const rc = formData._reality_check;
+  if (!rc) return false;                // não rodou ainda
+  if (rc.blocking) return false;        // tem erro crítico
+  if (rc.derived.fit_score < 50) return false;
+  return true;
+}
+```
+
+Erros (`level: 'error'`) **bloqueiam o avanço** do step atual. Warnings exigem que o usuário marque um checkbox "Estou ciente e desejo prosseguir mesmo assim". O motivo é registrado em `formData._reality_check.acknowledgements`.
+
+### 17.12 Fases de Implementação
+
+| Fase | Entregáveis | Esforço |
+|------|------------|---------|
+| 17-A | `ModularGridValidator`, `PanelThicknessValidator`, `FloorValidator` (regras óbvias e bloqueantes) | 1 dia |
+| 17-B | `ThermalLoadCalculator` + `RefrigerationValidator` + sidebar de análise | 1-2 dias |
+| 17-C | Step "Uso Pretendido" + `CapacityValidator` + `UseCaseFitScore` | 1-2 dias |
+| 17-D | `DoorValidator` + `AccessoryValidator` + autofix UI | 1 dia |
+| 17-E | Integração IA (Camada 3) + prompt de validação cruzada + bloqueio de submit | 1-2 dias |
+| 17-F | Persistência do `_reality_check` no submission + exibição no painel admin | 0,5 dia |
+
+### 17.13 Prioridade
+
+🔴 **Alta** — Após Fase 1 (Engine + Cliente) e Fase 2 (SVG Dimensões), o RealityCheckEngine é o **diferencial competitivo** do wizard: transforma o representante em consultor, reduz orçamentos refeitos por incoerência técnica e antecipa objeções do engenheiro de pré-venda.
+
+---
+
 ## Próximo Passo

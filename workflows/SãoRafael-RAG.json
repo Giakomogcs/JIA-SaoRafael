@@ -917,7 +917,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- 1. Remove Histórico de Chat Antigo (Removido o '*')\nDELETE FROM saorafael_chat_message;\n\n-- 2. Remove Vetores Antigos\nDELETE FROM aspirapaq_documents \nWHERE saorafael_metadata->>'session_id' IS NOT NULL;\n\n-- 3. Remove Arquivos/Metadados Antigos\nDELETE FROM saorafael_document_metadata \nWHERE session_id IS NOT NULL;",
+        "query": "-- 1. Remove Histórico de Chat Antigo\nDELETE FROM saorafael_chat_message;\n\n-- 2. Remove Vetores Antigos\nDELETE FROM saorafael_documents\nWHERE metadata->>'session_id' IS NOT NULL;\n\n-- 3. Remove Arquivos/Metadados Antigos\nDELETE FROM saorafael_document_metadata\nWHERE session_id IS NOT NULL;",
         "options": {}
       },
       "id": "10bcc926-3ee0-43af-be55-92b7b855ba3f",
@@ -939,7 +939,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "saorafael-DatabaseSetup",
+        "path": "saorafael-reset-rag",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -951,7 +951,7 @@
         -2240,
         256
       ],
-      "webhookId": "1c70aff4-7d8b-4d00-abd9-0ecda88405ee"
+      "webhookId": "0610c27d-2313-4976-9b6b-de80378d7cbd"
     },
     {
       "parameters": {
