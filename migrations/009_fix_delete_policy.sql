@@ -4,6 +4,7 @@
 -- =============================================
 
 -- Admin can delete submissions
+DROP POLICY IF EXISTS "Admins can delete submissions" ON saorafael_wizard_submission;
 CREATE POLICY "Admins can delete submissions"
   ON saorafael_wizard_submission
   FOR DELETE

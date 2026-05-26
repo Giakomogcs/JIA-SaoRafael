@@ -24,6 +24,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_saorafael_chat_user_id ON saorafael_chat_message;
 CREATE TRIGGER trg_saorafael_chat_user_id
   BEFORE INSERT ON saorafael_chat_message
   FOR EACH ROW

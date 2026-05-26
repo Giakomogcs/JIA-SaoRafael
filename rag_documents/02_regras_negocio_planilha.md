@@ -69,6 +69,45 @@ O wizard de orçamento da São Rafael coleta dados em 6 etapas sequenciais. Os d
 | revestimento_externo | Select | idem | Código material + preço/m² |
 | piso | Select | Sem Piso, Com Piso Simples, Com Piso Reforçado | Adiciona componente de custo |
 | espessura_piso | Number (condicional) | 75, 100, 150 (mm) | Só se piso ≠ "Sem Piso" |
+| iluminacao | Select | Sem Iluminação, LED Hermética IP65, LED Hermética IP67 | Tipo de luminária |
+| qtd_luminarias | Number | Soma dos compartimentos | Quantidade total de luminárias |
+
+**Cálculo de luminárias (Reality Check Engine — fonte única de verdade)**
+
+A São Rafael padroniza em **LED hermética 36W (≈ 4500 lm)** para câmaras frigoríficas. O cálculo segue o método luminotécnico simplificado da NBR 5413:
+
+```
+lumens_necessarios = area_compartimento_m² × alvo_lux
+qtd_recomendada    = ceil(lumens_necessarios / 4500)
+qtd_minima         = max(1, floor(area × 0.6 × alvo_lux / 4500))
+qtd_maxima         = ceil(area × 1.5 × alvo_lux / 4500) + 1
+```
+
+**Alvo de lux por aplicação** (definido pelo Reality Check):
+
+| Aplicação | Temperatura típica | Alvo de Lux | Justificativa |
+|-----------|--------------------|-------------|---------------|
+| Climatizada / Antecâmara | +10 a +25°C | 150 lux | Ambiente, baixa permanência |
+| Resfriamento (Cooler) | 0 a +10°C | 175 lux | Movimentação moderada |
+| Congelamento (Freezer) | < -10°C | 200 lux | Compensa neblina e EPI |
+| Carnes / Laticínios / Farmacêutico (área de trabalho) | varia | 250 lux | Norma sanitária / produção |
+
+**Exemplos práticos**:
+
+| Câmara | Área (m²) | Temp / Categoria | Alvo lux | Lumens | Recomendado |
+|--------|-----------|------------------|----------|--------|-------------|
+| Walk In Cooler 3.36 × 2.24 × 2.50m | 7,5 | +4°C / hortifruti | 175 | 1.313 | **1 luminária** |
+| Walk In Freezer 5.60 × 4.20 × 2.50m | 23,5 | -20°C / congelados | 200 | 4.704 | **2 luminárias** |
+| Câmara carnes 8.40 × 5.60 × 3.00m | 47,0 | -2°C / carnes resfriadas | 250 | 11.760 | **3 luminárias** |
+| Sala climatizada 4.20 × 3.36 × 2.80m | 14,1 | +20°C / cosméticos | 150 | 2.117 | **1 luminária** |
+
+**Regras complementares**:
+
+- Múltiplos compartimentos: calcular por compartimento e somar. O total da câmara = Σ recomendados.
+- `iluminacao = "Sem Iluminação"` → `qtd_luminarias` deve ser 0 ou vazio. Qualquer outro valor = contradição (🔴).
+- O valor recomendado pelo Reality Check é a ÚNICA referência válida — não usar regras antigas como "1 a cada 6m²".
+- Quando o vendedor sobrepor (mais que `qtd_maxima`), permitir mas alertar (🟡) — pode ser intencional (área de produção, inspeção visual fina).
+- Quando o vendedor subdimensionar (menos que `qtd_minima`), alertar (🟡) — pode comprometer NR-17 / NR-36 (ergonomia/visibilidade no trabalho).
 
 **Cálculo automático da planilha**:
 ```

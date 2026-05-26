@@ -10,6 +10,7 @@ ALTER TABLE saorafael_clients ENABLE ROW LEVEL SECURITY;
 
 -- Vendedores podem ver TODOS os clientes (leitura compartilhada)
 -- Motivo: um cliente pode ser atendido por mais de um vendedor
+DROP POLICY IF EXISTS "Authenticated users can read all clients" ON saorafael_clients;
 CREATE POLICY "Authenticated users can read all clients"
   ON saorafael_clients
   FOR SELECT
@@ -17,6 +18,7 @@ CREATE POLICY "Authenticated users can read all clients"
   USING (true);
 
 -- Vendedores podem inserir clientes (created_by = auth.uid())
+DROP POLICY IF EXISTS "Users can insert clients" ON saorafael_clients;
 CREATE POLICY "Users can insert clients"
   ON saorafael_clients
   FOR INSERT
@@ -24,6 +26,7 @@ CREATE POLICY "Users can insert clients"
   WITH CHECK (created_by = auth.uid());
 
 -- Vendedores podem atualizar apenas clientes que criaram
+DROP POLICY IF EXISTS "Users can update own clients" ON saorafael_clients;
 CREATE POLICY "Users can update own clients"
   ON saorafael_clients
   FOR UPDATE
@@ -31,6 +34,7 @@ CREATE POLICY "Users can update own clients"
   USING (created_by = auth.uid());
 
 -- Admins podem atualizar qualquer cliente
+DROP POLICY IF EXISTS "Admins can update all clients" ON saorafael_clients;
 CREATE POLICY "Admins can update all clients"
   ON saorafael_clients
   FOR UPDATE
@@ -38,6 +42,7 @@ CREATE POLICY "Admins can update all clients"
   USING (saorafael_is_admin());
 
 -- Admins podem deletar clientes
+DROP POLICY IF EXISTS "Admins can delete clients" ON saorafael_clients;
 CREATE POLICY "Admins can delete clients"
   ON saorafael_clients
   FOR DELETE
@@ -45,6 +50,7 @@ CREATE POLICY "Admins can delete clients"
   USING (saorafael_is_admin());
 
 -- Service role full access (para n8n backend)
+DROP POLICY IF EXISTS "Service role full access clients" ON saorafael_clients;
 CREATE POLICY "Service role full access clients"
   ON saorafael_clients
   FOR ALL

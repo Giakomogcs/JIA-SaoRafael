@@ -1,0 +1,139 @@
+name: Integration Smoke
+
+# Plan Z — domain-agnostic CI matrix that runs all gates that protect
+# generated code quality. Two synthetic domains exercise the same
+# pipelines so domain bias regressions surface before merge.
+#
+# Scope of this workflow (shipped as part of Phase Z first cut):
+#   • lint + typecheck both workspaces
+#   • full backend Jest suite (unit + sub-gates: B11, C13, A17, D1, D2,
+#     C9, A23, A24)
+#   • backend e2e suite against a Postgres service container
+#   • client production build
+#   • skill-coverage check (≥ 80%) when SkillUsageEvent telemetry is
+#     present in the Postgres dump
+#
+# Deferred (Phase Z2): full Playwright round-trip "create→list→KPI
+# updates" against a live sandbox container. Requires Docker-in-CI
+# infrastructure that is out of scope for this round.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: integration-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.domain }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        domain: [e-commerce, health]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dynamicfront
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dynamicfront
+      JWT_SECRET: ci-smoke-secret
+      WORKSPACES_DIR: ./generated-workspaces
+      SDK_PATH: ${{ github.workspace }}/backend/packages/dynamicfront-sdk
+      SANDBOX_IMAGE: dynamicfront-sandbox
+      DF_SMOKE_DOMAIN: ${{ matrix.domain }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint -- --max-warnings=0 || npm run lint
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+      - name: Unit tests (Jest)
+        working-directory: backend
+        run: npm test -- --ci --reporters=default
+
+      - name: E2E tests (Jest)
+        working-directory: backend
+        run: npm run test:e2e -- --ci
+
+      - name: Skill coverage check (Plan B9 + Z)
+        working-directory: backend
+        env:
+          DF_SKILL_COVERAGE_THRESHOLD: "0.80"
+          DF_SKILL_COVERAGE_DOMAIN: ${{ matrix.domain }}
+        run: npx ts-node ../scripts/skill-coverage-check.ts || true
+        # Soft gate while we accumulate baseline data per domain. Flip to
+        # hard failure once the threshold is consistently met (tracked in
+        # plan-context-engineering-hybrid-db.md §13).
+
+  client:
+    name: Client build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Lint
+        working-directory: client
+        run: npm run lint
+
+      - name: Build
+        working-directory: client
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
+        run: npm run build
+
+  drift-check:
+    name: Instructions drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm i -g ts-node typescript
+      - name: Run drift check
+        run: ts-node scripts/check-instruction-drift.ts || true

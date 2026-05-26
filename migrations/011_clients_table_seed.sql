@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_saorafael_clients_created_by
 ALTER TABLE saorafael_wizard_submission
   ADD COLUMN IF NOT EXISTS client_id UUID REFERENCES saorafael_clients(id);
 
--- 5. Popular clientes a partir das submissions existentes
+-- 5. Popular clientes a partir das submissions existentes (apenas se ainda não houver clientes)
 -- O form_data tem estrutura: { step2: { razao_social, cnpj_cpf, cidade, estado, ... } }
 INSERT INTO saorafael_clients (
   razao_social,
@@ -88,6 +88,7 @@ SELECT DISTINCT ON (COALESCE(NULLIF(TRIM(form_data->'step2'->>'cnpj_cpf'), ''), 
 FROM saorafael_wizard_submission
 WHERE form_data->'step2'->>'razao_social' IS NOT NULL
   AND TRIM(form_data->'step2'->>'razao_social') != ''
+  AND NOT EXISTS (SELECT 1 FROM saorafael_clients LIMIT 1)  -- só roda se a tabela está vazia
 ORDER BY COALESCE(NULLIF(TRIM(form_data->'step2'->>'cnpj_cpf'), ''), form_data->'step2'->>'razao_social'),
          submitted_at DESC;  -- pega o mais recente se houver duplicatas
 
