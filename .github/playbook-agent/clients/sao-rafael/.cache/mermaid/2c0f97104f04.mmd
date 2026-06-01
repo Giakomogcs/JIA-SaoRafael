@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor U as Representante
+  participant FE as front.html
+  participant SB as Supabase (RLS)
+  participant N as n8n / AgentRag
+  participant AZ as Azure OpenAI
+  participant W as n8n / Wizard Submit
+
+  U->>FE: Inicia wizard
+  FE->>SB: busca cliente (RPC)
+  SB-->>FE: cliente ou null
+  U->>FE: preenche etapa N
+  FE->>N: POST validação (JWT)
+  N->>AZ: chat com contexto RAG
+  AZ-->>N: sugestões + flags
+  N-->>FE: JSON estruturado
+  FE->>FE: Reality Check (JS)
+  U->>FE: revisa e envia
+  FE->>W: POST submit
+  W->>SB: gera protocolo + UPSERT
+  W-->>FE: { protocol, status }

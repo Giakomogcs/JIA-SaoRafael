@@ -1,0 +1,22 @@
+sequenceDiagram
+  participant T as Trigger
+  participant N as n8n / RAG
+  participant GD as Google Drive
+  participant EX as Extractors
+  participant GEM as Gemini Embeddings
+  participant SB as Supabase
+  participant VS as pgvector
+
+  T->>N: dispara workflow
+  N->>GD: lista arquivos
+  GD-->>N: metadata
+  loop por arquivo
+    N->>GD: download
+    N->>EX: extract (pdf/xlsx/md)
+    EX-->>N: chunks
+    N->>SB: upsert metadata
+    N->>GEM: embeddings(chunks)
+    GEM-->>N: vectors
+    N->>VS: insert chunks + vectors
+  end
+  N-->>T: status + counters

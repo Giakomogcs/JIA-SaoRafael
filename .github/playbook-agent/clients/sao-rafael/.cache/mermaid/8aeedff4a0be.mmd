@@ -1,0 +1,19 @@
+flowchart LR
+  USR(["Usuário (Rep/Admin)"])
+  FE["front.html<br/>(servido pelo n8n)"]
+  N8N["n8n (Cloudfy)<br/>workflows"]
+  SB[("Supabase (Cloudfy)<br/>PostgreSQL + RLS")]
+  PGV[("pgvector")]
+  AZ["Azure OpenAI"]
+  GD["Google Drive"]
+  GEM["Gemini Embeddings"]
+
+  USR -->|HTTPS| FE
+  FE -->|JWT + RPC| SB
+  FE -->|JWT + Webhook| N8N
+  N8N -->|SQL| SB
+  N8N -->|pgvector| PGV
+  N8N -->|chat + embed| AZ
+  N8N -->|OAuth2| GD
+  N8N -->|embed| GEM
+  SB --- PGV

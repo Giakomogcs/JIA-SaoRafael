@@ -1,0 +1,111 @@
+{
+  "cookies": [
+    {
+      "name": "ph_bootstrap",
+      "value": "%7B%22distinctID%22%3A%22b3d675e0-8024-4f5d-ba6e-b3cec0bd81a6%22%2C%22featureFlags%22%3A%7B%22chat-experiments%22%3Afalse%2C%22survey-targeting-c97f4be581-custom%22%3Atrue%2C%22survey-targeting-c7da4f3dff-custom%22%3Atrue%2C%22survey-targeting-bc80cee657-custom%22%3Atrue%2C%22ent-redesign-guardrails-detail-pane%22%3Afalse%2C%22move_api_key_between_workspaces%22%3Afalse%2C%22interns-dashboard%22%3Atrue%2C%22survey-targeting-8c4e148c6b-custom%22%3Atrue%7D%7D",
+      "domain": "openrouter.ai",
+      "path": "/",
+      "expires": 1779891182.988368,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "_ga",
+      "value": "GA1.1.1021659296.1779887583",
+      "domain": ".openrouter.ai",
+      "path": "/",
+      "expires": 1814447583.382165,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_R8YZRJS2XN",
+      "value": "GS2.1.s1779887583$o1$g0$t1779887583$j60$l0$h0$drvoMDLtE-RV4a--lHuCN2Bs0rJILBYOQWA",
+      "domain": ".openrouter.ai",
+      "path": "/",
+      "expires": 1814447583.407179,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__client",
+      "value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNsaWVudF8zRUpENEFIMFpSY0lyd2Q3Zkh3QzkyczgyT1AiLCJyb3RhdGluZ190b2tlbiI6Im8yMDZjYmwwdm11amc1dXMxeXQwdzk0eGxhOTJ1N3M4M2Eyb2FmN2wifQ.jp7tAHKp9EndD_tzP4LvDG-hL_N1Je00pPS6fZczuTc_f8KRh5HlDeEPZCjs7LPrSMsRJjR2OhG27gLiGg4FFd1N6IZMJ-KDqTLNZQrSIalCNJtsXw6zKnBLbN1cJ5uWHd4bpOJ0I5lxsrkrKlfFn0Jtt8BTy6ePX0tT1y9iKvC-dXVqqz_lSMXfTuOikY7OIk23PDOyG0B46WsHV-eBQnC5GNJJCWItYsHs0lI1b3kmi7hyeReq626VLPN6nu0ud20rumjKGlvtm5L9_aJUI_7U5QyPYtxztoSt7KEYXRvaKvRgsMsHVuIgzbd_1WOH9L466UkmVuBmH40i2JwZBQ",
+      "domain": ".clerk.openrouter.ai",
+      "path": "/",
+      "expires": 1814447583.781925,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__client_uat",
+      "value": "0",
+      "domain": ".openrouter.ai",
+      "path": "/",
+      "expires": 1814447583.781971,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__client_uat_NO6jtgZM",
+      "value": "0",
+      "domain": ".openrouter.ai",
+      "path": "/",
+      "expires": 1814447583.781994,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__cf_bm",
+      "value": "UgJ9XS14_gAcRZpYy9sU59wkdRaox9qPwCXI55ostz4-1779887584-1.0.1.1-Bquv6ZbY9aMl3v0PWTgszqS2N8hSxNaeI_4DdvnDq_ps7i547hInXdrZpjS36b9htYROrURMfpS41bIyjBonjh25c4qdJWxniHY8VrnOJes",
+      "domain": ".clerk.openrouter.ai",
+      "path": "/",
+      "expires": 1779889383.782008,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_cfuvid",
+      "value": "ByvlAxeT5rpzY4f3S04FJPk5Izvl1XwqpUesQF71wFw-1779887584269-0.0.1.1-604800000",
+      "domain": ".clerk.openrouter.ai",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://openrouter.ai",
+      "localStorage": [
+        {
+          "name": "openrouter:openrouter-cookie-consent-banner",
+          "value": "true"
+        },
+        {
+          "name": "__clerk_environment",
+          "value": "{\"value\":{\"object\":\"environment\",\"auth_config\":{\"claimed_at\":null,\"id\":\"\",\"object\":\"auth_config\",\"reverification\":false,\"single_session_mode\":true,\"session_minter\":false},\"display_config\":{\"object\":\"display_config\",\"after_create_organization_url\":\"https://openrouter.ai\",\"after_join_waitlist_url\":\"https://openrouter.ai\",\"after_leave_organization_url\":\"https://openrouter.ai\",\"after_sign_in_url\":\"https://openrouter.ai\",\"after_sign_out_all_url\":\"https://accounts.openrouter.ai/sign-in\",\"after_sign_out_one_url\":\"https://accounts.openrouter.ai/sign-in/choose\",\"after_sign_up_url\":\"https://openrouter.ai\",\"after_switch_session_url\":\"https://openrouter.ai\",\"application_name\":\"OpenRouter\",\"branded\":false,\"captcha_heartbeat\":false,\"captcha_oauth_bypass\":[],\"captcha_provider\":\"turnstile\",\"captcha_public_key_invisible\":\"0x4AAAAAAAFV93qQdS0ycilX\",\"captcha_public_key\":\"0x4AAAAAAAWXJGBD7bONzLBd\",\"captcha_widget_type\":\"smart\",\"clerk_js_version\":\"5\",\"create_organization_url\":\"https://accounts.openrouter.ai/create-organization\",\"favicon_image_url\":\"https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2ltYWdlcy5jbGVyay5kZXYvdXBsb2FkZWQvaW1nXzJTOXl1dFBTamJPd3VrMzdLUG03ZVE2ZmpMUi5wbmcifQ\",\"google_one_tap_client_id\":\"712835604272-nspgf3v5is60916ms91es62akuhhanrh.apps.googleusercontent.com\",\"home_url\":\"https://openrouter.ai\",\"id\":\"display_config_2PiQqgNTNfjZIfZcjcQDFCupZNU\",\"instance_environment_type\":\"production\",\"logo_image_url\":\"\",\"organization_profile_url\":\"https://accounts.openrouter.ai/organization\",\"preferred_sign_in_strategy\":\"password\",\"privacy_policy_url\":\"https://openrouter.ai/privacy\",\"show_devmode_warning\":false,\"sign_in_url\":\"https://accounts.openrouter.ai/sign-in\",\"sign_up_url\":\"https://accounts.openrouter.ai/sign-up\",\"support_email\":\"support@openrouter.ai\",\"terms_url\":\"https://openrouter.ai/terms\",\"theme\":{\"buttons\":{\"font_color\":\"#ffffff\",\"font_family\":\"\\\"Inter\\\", sans-serif\",\"font_weight\":\"600\"},\"general\":{\"color\":\"#6366f1\",\"padding\":\"1em\",\"box_shadow\":\"0 2px 8px rgba(0, 0, 0, 0.2)\",\"font_color\":\"#151515\",\"font_family\":\"\\\"Inter\\\", sans-serif\",\"border_radius\":\"0.5em\",\"background_color\":\"#ffffff\",\"label_font_weight\":\"600\"},\"accounts\":{\"background_color\":\"#ffffff\"}},\"user_profile_url\":\"https://accounts.openrouter.ai/user\",\"waitlist_url\":\"https://accounts.openrouter.ai/waitlist\"},\"id\":\"\",\"maintenance_mode\":false,\"client_debug_mode\":false,\"partitioned_cookies\":false,\"organization_settings\":{\"actions\":{\"admin_delete\":true},\"domains\":{\"enabled\":true,\"enrollment_modes\":[\"automatic_invitation\",\"manual_invitation\",\"automatic_suggestion\"],\"default_role\":\"org:member\"},\"enabled\":true,\"max_allowed_memberships\":20},\"user_settings\":{\"actions\":{\"delete_self\":true,\"create_organization\":true,\"create_organizations_limit\":1},\"attributes\":{\"email_address\":{\"enabled\":true,\"required\":true,\"used_for_first_factor\":true,\"first_factors\":[\"email_link\",\"email_code\"],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[\"email_code\",\"email_link\"],\"verify_at_sign_up\":true,\"immutable\":true,\"name\":\"email_address\"},\"phone_number\":{\"enabled\":false,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"phone_number\"},\"username\":{\"enabled\":false,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"username\"},\"web3_wallet\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":true,\"first_factors\":[\"web3_metamask_signature\"],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[\"web3_metamask_signature\"],\"verify_at_sign_up\":true,\"immutable\":false,\"name\":\"web3_wallet\"},\"first_name\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"first_name\"},\"last_name\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"last_name\"},\"password\":{\"enabled\":true,\"required\":true,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"password\"},\"authenticator_app\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":true,\"second_factors\":[\"totp\"],\"verifications\":[\"totp\"],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"authenticator_app\"},\"ticket\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"ticket\"},\"backup_code\":{\"enabled\":false,\"required\":false,\"used_for_first_factor\":false,\"first_factors\":[],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"backup_code\"},\"passkey\":{\"enabled\":true,\"required\":false,\"used_for_first_factor\":true,\"first_factors\":[\"passkey\"],\"used_for_second_factor\":false,\"second_factors\":[],\"verifications\":[\"passkey\"],\"verify_at_sign_up\":false,\"immutable\":false,\"name\":\"passkey\"}},\"passkey_settings\":{\"allow_autofill\":true,\"show_sign_in_button\":true},\"password_settings\":{\"disable_hibp\":false,\"min_length\":8,\"max_length\":72,\"require_special_char\":false,\"require_numbers\":false,\"require_uppercase\":false,\"require_lowercase\":false,\"show_zxcvbn\":false,\"min_zxcvbn_strength\":0,\"enforce_hibp_on_sign_in\":false,\"allowed_special_characters\":\"!\\\"#$%&'()*+,-./:;<=>?@[]^_`{|}~\"},\"saml\":{\"enabled\":true},\"sign_in\":{\"second_factor\":{\"required\":false}},\"sign_up\":{\"captcha_enabled\":true,\"captcha_widget_type\":\"smart\",\"custom_action_required\":false,\"progressive\":true,\"mode\":\"public\",\"legal_consent_enabled\":true,\"mfa\":{\"required\":false}},\"social\":{\"oauth_apple\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_apple\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Apple\",\"logo_url\":\"https://img.clerk.com/static/apple.png\"},\"oauth_atlassian\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_atlassian\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Atlassian\",\"logo_url\":\"https://img.clerk.com/static/atlassian.png\"},\"oauth_bitbucket\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_bitbucket\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Bitbucket\",\"logo_url\":\"https://img.clerk.com/static/bitbucket.png\"},\"oauth_box\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_box\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Box\",\"logo_url\":\"https://img.clerk.com/static/box.png\"},\"oauth_coinbase\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_coinbase\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Coinbase\",\"logo_url\":\"https://img.clerk.com/static/coinbase.png\"},\"oauth_discord\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_discord\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Discord\",\"logo_url\":\"https://img.clerk.com/static/discord.png\"},\"oauth_dropbox\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_dropbox\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Dropbox\",\"logo_url\":\"https://img.clerk.com/static/dropbox.png\"},\"oauth_facebook\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_facebook\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Facebook\",\"logo_url\":\"https://img.clerk.com/static/facebook.png\"},\"oauth_github\":{\"enabled\":true,\"required\":false,\"authenticatable\":true,\"block_email_subaddresses\":false,\"strategy\":\"oauth_github\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"GitHub\",\"logo_url\":\"https://img.clerk.com/static/github.png\"},\"oauth_gitlab\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_gitlab\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"GitLab\",\"logo_url\":\"https://img.clerk.com/static/gitlab.png\"},\"oauth_google\":{\"enabled\":true,\"required\":false,\"authenticatable\":true,\"block_email_subaddresses\":false,\"strategy\":\"oauth_google\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Google\",\"logo_url\":\"https://img.clerk.com/static/google.png\"},\"oauth_hubspot\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_hubspot\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"HubSpot\",\"logo_url\":\"https://img.clerk.com/static/hubspot.png\"},\"oauth_line\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_line\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"LINE\",\"logo_url\":\"https://img.clerk.com/static/line.png\"},\"oauth_linear\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_linear\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Linear\",\"logo_url\":\"https://img.clerk.com/static/linear.png\"},\"oauth_microsoft\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_microsoft\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Microsoft\",\"logo_url\":\"https://img.clerk.com/static/microsoft.png\"},\"oauth_notion\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_notion\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Notion\",\"logo_url\":\"https://img.clerk.com/static/notion.png\"},\"oauth_slack\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_slack\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Slack\",\"logo_url\":\"https://img.clerk.com/static/slack.png\"},\"oauth_spotify\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_spotify\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Spotify\",\"logo_url\":\"https://img.clerk.com/static/spotify.png\"},\"oauth_tiktok\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_tiktok\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"TikTok\",\"logo_url\":\"https://img.clerk.com/static/tiktok.png\"},\"oauth_twitch\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_twitch\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Twitch\",\"logo_url\":\"https://img.clerk.com/static/twitch.png\"},\"oauth_twitter\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_twitter\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Twitter\",\"logo_url\":\"https://img.clerk.com/static/twitter.png\"},\"oauth_xero\":{\"enabled\":false,\"required\":false,\"authenticatable\":false,\"block_email_subaddresses\":false,\"strategy\":\"oauth_xero\",\"not_selectable\":false,\"deprecated\":false,\"name\":\"Xero\",\"logo_url\":\"https://img.clerk.com/static/xero.png\"}}},\"commerce_settings\":{\"billing\":{\"stripe_publishable_key\":null,\"organization\":{\"enabled\":false,\"has_paid_plans\":false},\"user\":{\"enabled\":false,\"has_paid_plans\":false}}},\"api_keys_settings\":{\"user_api_keys_enabled\":false,\"orgs_api_keys_enabled\":false},\"protect_config\":{\"object\":\"protect_config\",\"id\":\"\"}},\"exp\":1779973983616}"
+        },
+        {
+          "name": "statsig.stable_id.1248122147",
+          "value": "\"87b26667-1b78-46f1-be2b-fe1323e4932d\""
+        },
+        {
+          "name": "_gcl_ls",
+          "value": "{\"schema\":\"gcl\",\"version\":1,\"gtg_load_status\":{\"status\":2,\"expires\":1779973983578}}"
+        },
+        {
+          "name": "statsig.session_id.1248122147",
+          "value": "{\"sessionID\":\"cffc48e0-2fb6-44a4-8da4-d98be69f6534\",\"startTime\":1779887583281,\"lastUpdate\":1779887583281}"
+        }
+      ]
+    }
+  ]
+}

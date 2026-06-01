@@ -1,0 +1,20 @@
+sequenceDiagram
+  actor U as Usuário
+  participant FE as front.html
+  participant N as n8n / AgentRag
+  participant VS as pgvector
+  participant SB as Supabase
+  participant AZ as Azure OpenAI
+
+  U->>FE: envia mensagem
+  FE->>SB: insert chat_message
+  FE->>N: POST /AgentRag (JWT)
+  N->>VS: similarity_search
+  VS-->>N: chunks relevantes
+  N->>SB: tool: consulta orçamentos
+  SB-->>N: rows
+  N->>AZ: gera resposta final
+  AZ-->>N: texto + traces
+  N->>SB: insert mensagem AI
+  N-->>FE: resposta
+  FE-->>U: render Markdown

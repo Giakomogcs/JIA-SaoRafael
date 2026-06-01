@@ -1,0 +1,629 @@
+{
+  "$schema": "Receitas declarativas para o capturador. Cada path bate com um screenshot referenciado em playbook/content.json.",
+  "_securityNote": "Mascaramento agressivo: input[readonly], input[type=password], qualquer texto matching longflatworm/*.cloudfy.live, padrões de senha. NUNCA confiar só no overlay manual.",
+
+  "sessions": {
+    "cloudfy": {
+      "envBase": "CLOUDFY_URL",
+      "login": {
+        "url": "{{CLOUDFY_URL}}",
+        "steps": [
+          { "fill": "input[type=email], input[name=email], input[placeholder*=mail i]", "value": "{{CLOUDFY_EMAIL}}" },
+          { "fill": "input[type=password], input[name=password]", "value": "{{CLOUDFY_PASSWORD}}" },
+          { "click": "button[type=submit], button:has-text('Entrar'), button:has-text('Login'), button:has-text('Sign in')" },
+          { "waitSelector": "a:has-text('Serviços'), a:has-text('Services'), nav, [data-testid=services]", "timeout": 25000 }
+        ]
+      }
+    },
+    "n8n": {
+      "envBase": "N8N_URL",
+      "login": {
+        "url": "{{N8N_URL}}",
+        "steps": [
+          { "fill": "input[type=email], input[name=email]", "value": "{{N8N_EMAIL}}" },
+          { "fill": "input[type=password], input[name=password]", "value": "{{N8N_PASSWORD}}" },
+          { "click": "button[type=submit], button:has-text('Sign in'), button:has-text('Entrar')" },
+          { "waitSelector": "[data-test-id=workflows-list-container], .workflows-page, aside, nav", "timeout": 30000 }
+        ]
+      }
+    },
+    "supabase": {
+      "envBase": "SUPABASE_URL",
+      "login": {
+        "url": "{{SUPABASE_DASHBOARD}}",
+        "httpAuth": true,
+        "username": "{{SUPABASE_EMAIL}}",
+        "password": "{{SUPABASE_PASSWORD}}"
+      }
+    },
+    "gcp": {
+      "envBase": "GCP_LOGIN_URL",
+      "login": {
+        "url": "https://accounts.google.com/ServiceLogin?service=cloudconsole",
+        "steps": [
+          { "fill": "input[type=email], input[name=identifier]", "value": "{{GCP_EMAIL}}" },
+          { "click": "#identifierNext button, button:has-text('Next'), button:has-text('Avançar')" },
+          { "waitSelector": "input[type=password], input[name=Passwd]", "timeout": 15000 },
+          { "fill": "input[type=password], input[name=Passwd]", "value": "{{GCP_PASSWORD}}" },
+          { "click": "#passwordNext button, button:has-text('Next'), button:has-text('Avançar')" },
+          { "waitSelector": "a[href*='console.cloud.google.com'], iframe, header", "timeout": 30000 }
+        ]
+      }
+    },
+    "azure": {
+      "envBase": "AZURE_LOGIN_URL",
+      "login": {
+        "url": "https://portal.azure.com",
+        "steps": [
+          { "fill": "input[type=email], input[name=loginfmt]", "value": "{{AZURE_EMAIL}}" },
+          { "click": "input[type=submit], button:has-text('Next'), button:has-text('Avançar')" },
+          { "waitSelector": "input[type=password], input[name=passwd]", "timeout": 20000 },
+          { "fill": "input[type=password], input[name=passwd]", "value": "{{AZURE_PASSWORD}}" },
+          { "click": "input[type=submit], button:has-text('Sign in'), button:has-text('Entrar')" },
+          { "waitSelector": "header, nav, [data-bi-id='Dashboard']", "timeout": 30000 }
+        ]
+      }
+    },
+    "openrouter": {
+      "envBase": "OPENROUTER_URL",
+      "login": {
+        "url": "https://openrouter.ai/sign-in",
+        "steps": [
+          { "fill": "input[type=email], input[name=identifier], input[name=email]", "value": "{{OPENROUTER_EMAIL}}" },
+          { "fill": "input[type=password], input[name=password]", "value": "{{OPENROUTER_PASSWORD}}" },
+          { "click": "button[type=submit], button:has-text('Sign in'), button:has-text('Continue')" },
+          { "waitSelector": "nav, header, a:has-text('Keys')", "timeout": 25000 }
+        ]
+      }
+    },
+    "front": {
+      "envBase": "FRONT_URL",
+      "login": {
+        "url": "{{FRONT_URL}}",
+        "steps": [
+          { "waitSelector": "#usernameInput, input[type=email]", "timeout": 25000 },
+          { "fill": "#usernameInput, input[type=email]", "value": "{{FRONT_ADMIN_EMAIL}}" },
+          { "fill": "#passwordInput, input[type=password]", "value": "{{FRONT_ADMIN_PASSWORD}}" },
+          { "click": "#loginForm button[type=submit], button:has-text('Entrar')" },
+          { "waitSelector": "#appContainer:visible, .sidebar, nav, aside", "timeout": 25000 }
+        ]
+      }
+    }
+  },
+
+  "globalMasks": [
+    "input[readonly]",
+    "input[type=password]",
+    "input[aria-label*=senha i]",
+    "input[aria-label*=password i]",
+    "input[aria-label*=email i]",
+    "code:has-text('postgres://')",
+    "code:has-text('postgresql://')",
+    "code:has-text('redis://')",
+    "code:has-text('eyJ')"
+  ],
+
+  "globalMasksByPage": {
+    "_doc": "Aplicado quando page.url() bate com o prefixo. Esconde linhas de outras pastas/clientes na lista do n8n.",
+    "longflatworm-n8n.cloudfy.live": [
+      "[data-test-id='resources-list-item']:not(:has-text('São Rafael')):not(:has-text('Jornada de IA')):not(:has-text('Personal'))",
+      ".folder-card:not(:has-text('São Rafael')):not(:has-text('Jornada de IA'))",
+      "a[href*='/workflows/']:has-text('Folder'):not(:has-text('São Rafael'))"
+    ]
+  },
+
+  "globalRedactPatterns": [
+    "longflatworm[A-Za-z0-9-]*",
+    "[a-z0-9-]+\\.cloudfy\\.(?:live|space|app)",
+    "\\b[a-z0-9]{20}\\.supabase\\.co\\b",
+    "eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}",
+    "sk-(?:proj-|or-|ant-)?[A-Za-z0-9_-]{20,}",
+    "\\b\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}\\b",
+    "\\bSR-\\d{6}-\\d{4}\\b",
+    "@saorafael\\.com\\.br",
+    "istic\\.sp@gmail\\.com",
+    "R\\$\\s?[\\d.]+,\\d{2}"
+  ],
+
+  "_uiHints": {
+    "cloudfy": "Cada serviço tem tabs: Geral / Admin / Database / Configurações. Conteúdo em cards (Admin, Credenciais). Inputs readonly expõem segredos."
+  },
+
+  "shots": [
+    { "path": "01-acesso-cloudfy/01-login.png",
+      "session": "cloudfy", "useLoginPage": true,
+      "actions": [{ "goto": "{{CLOUDFY_URL}}" }],
+      "masks": ["input[type=email]", "input[type=password]"]
+    },
+
+    { "path": "01-acesso-cloudfy/02-menu-servicos.png",
+      "session": "cloudfy",
+      "actions": [
+        { "goto": "{{CLOUDFY_DASHBOARD}}" },
+        { "highlight": "a:has-text('Serviços'), a:has-text('Services')" }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/03-card-n8n.png",
+      "session": "cloudfy",
+      "actions": [
+        { "goto": "{{CLOUDFY_DASHBOARD}}" },
+        { "highlight": ":text-is('n8n')" }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/04-aba-admin-n8n.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "n8n" },
+        { "clickTab": "Admin" },
+        { "wait": 800 }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/04b-aba-database-n8n.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "n8n" },
+        { "clickTab": "Database" },
+        { "wait": 800 }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/05-url-n8n.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "n8n" },
+        { "clickTab": "Admin" },
+        { "wait": 500 },
+        { "highlight": "*:text-is('URL') ~ *" }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/06-copiar-email-senha.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "n8n" },
+        { "clickTab": "Admin" },
+        { "wait": 500 },
+        { "highlight": "*:text-is('Email') ~ *, *:text-is('Senha do n8n') ~ *" }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/07-servicos-supabase.png",
+      "session": "cloudfy",
+      "actions": [
+        { "goto": "{{CLOUDFY_DASHBOARD}}" },
+        { "highlight": ":text-is('Supabase')" }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/08-card-supabase.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "Supabase" },
+        { "clickTab": "Geral" },
+        { "wait": 500 }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/09-aba-database.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "Supabase" },
+        { "clickTab": "Database" },
+        { "wait": 800 }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/10-aba-admin-supabase.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "Supabase" },
+        { "clickTab": "Admin" },
+        { "wait": 800 }
+      ]
+    },
+
+    { "path": "01-acesso-cloudfy/11-redis-admin.png",
+      "session": "cloudfy",
+      "actions": [
+        { "navigateService": "Redis" },
+        { "clickTab": "Admin" },
+        { "wait": 800 }
+      ]
+    },
+
+    { "_comment": "================ CAPÍTULO 02 — Supabase setup ================" },
+
+    { "path": "02-supabase-setup/01-sql-editor.png",
+      "session": "supabase",
+      "actions": [
+        { "goto": "{{SUPABASE_DASHBOARD}}" },
+        { "click": "a[href*='/sql'], a:has-text('SQL Editor'), [data-testid='sql-editor-link']" },
+        { "wait": 1500 },
+        { "highlight": "a[href*='/sql'], a:has-text('SQL Editor')" }
+      ]
+    },
+
+    { "path": "02-supabase-setup/02-add-user.png",
+      "session": "supabase",
+      "actions": [
+        { "goto": "{{SUPABASE_DASHBOARD}}" },
+        { "click": "a[href*='/auth/users'], a:has-text('Authentication')" },
+        { "wait": 1500 },
+        { "click": "a:has-text('Users'), [role='tab']:has-text('Users')" },
+        { "wait": 1500 },
+        { "highlight": "button:has-text('Add user'), button:has-text('Adicionar usuário'), button:has-text('Add User')" }
+      ]
+    },
+
+    { "_comment": "================ CAPÍTULO 03 — Import workflows n8n ================" },
+
+    { "path": "03-n8n-import/01-create-workflow.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "highlight": "button:has-text('Create Workflow'), button:has-text('Novo workflow'), button:has-text('Create workflow'), a:has-text('Create Workflow')" }
+      ]
+    },
+
+    { "path": "03-n8n-import/02-import-from-file.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/workflow/new" },
+        { "wait": 2000 },
+        { "click": "[data-test-id='workflow-menu'], button[aria-label*='menu' i], button:has(svg) >> nth=0" },
+        { "wait": 800 },
+        { "highlight": "[role='menuitem']:has-text('Import from File'), li:has-text('Import from File'), li:has-text('Importar')" }
+      ]
+    },
+
+    { "path": "03-n8n-import/03-save-workflow.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "click": "a[data-test-id='workflow-card-name'], a.workflow-card, .workflows-list a >> nth=0" },
+        { "wait": 2500 },
+        { "highlight": "button:has-text('Save'), [data-test-id='workflow-save-button']" }
+      ]
+    },
+
+    { "path": "03-n8n-import/04-toggle-active.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "click": "a[data-test-id='workflow-card-name'], a.workflow-card, .workflows-list a >> nth=0" },
+        { "wait": 2500 },
+        { "highlight": "[data-test-id='workflow-activate-switch'], .el-switch, [role='switch']" }
+      ]
+    },
+
+    { "_comment": "================ CAPÍTULO 04 — Credenciais ================" },
+
+    { "path": "04-credenciais/01-no-vermelho.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "click": "a[data-test-id='workflow-card-name'], a.workflow-card, .workflows-list a >> nth=0" },
+        { "wait": 2500 },
+        { "highlight": ".node-issues, .node-default[class*='error'], [data-issue], .has-issues" }
+      ]
+    },
+
+    { "path": "04-credenciais/02-create-new-credential.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "highlight": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial'), a:has-text('Create Credential')" }
+      ]
+    },
+
+    { "path": "04-credenciais/03-postgres-node.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Postgres" },
+        { "wait": 800 },
+        { "highlight": "[data-test-id*='credential' i]:has-text('Postgres'), li:has-text('Postgres'), .credential-type:has-text('Postgres')" }
+      ]
+    },
+
+    { "path": "04-credenciais/04-postgres-form.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Postgres" },
+        { "wait": 800 },
+        { "click": "li:has-text('Postgres'), [data-test-id*='credential' i]:has-text('Postgres') >> nth=0" },
+        { "wait": 1500 }
+      ],
+      "masks": ["input[type='password']", "input[name='password']", "input[name='host']"]
+    },
+
+    { "path": "04-credenciais/05-supabase-node.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Supabase" },
+        { "wait": 800 },
+        { "highlight": "li:has-text('Supabase'), [data-test-id*='credential' i]:has-text('Supabase')" }
+      ]
+    },
+
+    { "path": "04-credenciais/06-supabase-form.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Supabase" },
+        { "wait": 800 },
+        { "click": "li:has-text('Supabase') >> nth=0" },
+        { "wait": 1500 }
+      ],
+      "masks": ["input[type='password']", "input[name*='Key' i]", "input[name*='token' i]"]
+    },
+
+    { "path": "04-credenciais/07-gcp-project.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://console.cloud.google.com/" },
+        { "wait": 3000 },
+        { "highlight": "[aria-label*='project' i], button:has-text('Select a project'), button:has-text('Selecionar projeto')" }
+      ]
+    },
+
+    { "path": "04-credenciais/08-drive-enable.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://console.cloud.google.com/apis/library/drive.googleapis.com" },
+        { "wait": 3000 },
+        { "highlight": "button:has-text('Enable'), button:has-text('Ativar')" }
+      ]
+    },
+
+    { "path": "04-credenciais/09-oauth-consent.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://console.cloud.google.com/apis/credentials/consent" },
+        { "wait": 3000 }
+      ]
+    },
+
+    { "path": "04-credenciais/10-create-oauth.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://console.cloud.google.com/apis/credentials" },
+        { "wait": 3000 },
+        { "highlight": "button:has-text('Create Credentials'), button:has-text('Criar credenciais'), a:has-text('Create Credentials')" }
+      ]
+    },
+
+    { "path": "04-credenciais/11-redirect-uri.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Google Drive OAuth2" },
+        { "wait": 800 },
+        { "click": "li:has-text('Google Drive OAuth2') >> nth=0" },
+        { "wait": 1500 },
+        { "highlight": "*:has-text('OAuth Redirect URL'), *:has-text('Redirect URL'), input[readonly]" }
+      ],
+      "masks": ["input[type='password']", "input[name*='Secret' i]"]
+    },
+
+    { "path": "04-credenciais/12-n8n-google-signin.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Google Drive OAuth2" },
+        { "wait": 800 },
+        { "click": "li:has-text('Google Drive OAuth2') >> nth=0" },
+        { "wait": 1500 },
+        { "highlight": "button:has-text('Sign in with Google'), button:has-text('Entrar com Google'), button:has-text('Connect')" }
+      ],
+      "masks": ["input[type='password']", "input[name*='Secret' i]", "input[name*='Client ID' i]"]
+    },
+
+    { "path": "04-credenciais/13-azure-create.png",
+      "session": "azure",
+      "actions": [
+        { "goto": "https://portal.azure.com/#create/Microsoft.CognitiveServicesOpenAI" },
+        { "wait": 4000 }
+      ]
+    },
+
+    { "path": "04-credenciais/14-azure-deployments.png",
+      "session": "azure",
+      "actions": [
+        { "goto": "https://oai.azure.com/portal/deployment" },
+        { "wait": 4000 },
+        { "highlight": "button:has-text('Create new deployment'), button:has-text('Deploy model'), button:has-text('Criar')" }
+      ]
+    },
+
+    { "path": "04-credenciais/15-azure-credential.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/home/credentials" },
+        { "wait": 1500 },
+        { "click": "button:has-text('Create Credential'), button:has-text('Add Credential'), button:has-text('Nova credencial')" },
+        { "wait": 1200 },
+        { "fill": "input[placeholder*='Search' i], input[placeholder*='Buscar' i], input[type='search']", "value": "Azure OpenAI" },
+        { "wait": 800 },
+        { "click": "li:has-text('Azure OpenAI') >> nth=0" },
+        { "wait": 1500 }
+      ],
+      "masks": ["input[type='password']", "input[name*='Key' i]", "input[name*='Endpoint' i]"]
+    },
+
+    { "path": "04-credenciais/16-gemini-key.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://aistudio.google.com/apikey" },
+        { "wait": 4000 },
+        { "highlight": "button:has-text('Create API key'), button:has-text('Gerar chave')" }
+      ],
+      "masks": ["table td:has-text('AI'), code:has-text('AI')"]
+    },
+
+    { "path": "04-credenciais/17-openrouter-key.png",
+      "session": "openrouter",
+      "actions": [
+        { "goto": "https://openrouter.ai/keys" },
+        { "wait": 3000 },
+        { "highlight": "button:has-text('Create Key'), button:has-text('Nova chave')" }
+      ],
+      "masks": ["code:has-text('sk-or-')", "[class*='key']:has-text('sk-')"]
+    },
+
+    { "_comment": "================ CAPÍTULO 05 — Deploy frontend ================" },
+
+    { "path": "05-deploy-frontend/01-workflow-front.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "highlight": "a:has-text('Front'), .workflow-card:has-text('Front')" }
+      ]
+    },
+
+    { "path": "05-deploy-frontend/02-code-node-html.png",
+      "session": "n8n",
+      "actions": [
+        { "openClientFolder": true },
+        { "click": "a:has-text('Front') >> nth=0" },
+        { "wait": 3000 },
+        { "click": ".node-default:has-text('Code'), [data-name='code'], .node-default >> nth=1" },
+        { "wait": 1500 }
+      ]
+    },
+
+    { "_comment": "================ CAPÍTULO 06 — Operação dia-a-dia ================" },
+
+    { "path": "06-operacao/01-login-admin.png",
+      "session": "front",
+      "useLoginPage": true,
+      "actions": [
+        { "goto": "{{FRONT_URL}}" },
+        { "wait": 2000 }
+      ],
+      "masks": ["input[type='email']", "input[type='password']"]
+    },
+
+    { "path": "06-operacao/02-admin-users.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/users" },
+        { "wait": 2500 }
+      ]
+    },
+
+    { "path": "06-operacao/03-create-user.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/users" },
+        { "wait": 2500 },
+        { "highlight": "button:has-text('Novo usuário'), button:has-text('Adicionar usuário'), button:has-text('Criar')" }
+      ]
+    },
+
+    { "path": "06-operacao/04-edit-user.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/users" },
+        { "wait": 2500 },
+        { "highlight": "button[aria-label*='editar' i], button:has-text('Editar'), tr button >> nth=0" }
+      ]
+    },
+
+    { "path": "06-operacao/05-delete-user.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/users" },
+        { "wait": 2500 },
+        { "highlight": "button[aria-label*='excluir' i], button[aria-label*='delete' i], button:has-text('Excluir')" }
+      ]
+    },
+
+    { "path": "06-operacao/06-clients-search.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/clients" },
+        { "wait": 2500 },
+        { "highlight": "input[placeholder*='Buscar' i], input[type='search']" }
+      ]
+    },
+
+    { "path": "06-operacao/07-client-detail.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/clients" },
+        { "wait": 2500 },
+        { "click": "table tbody tr >> nth=0" },
+        { "wait": 2000 }
+      ]
+    },
+
+    { "path": "06-operacao/08-submissions-list.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}#/admin/submissions" },
+        { "wait": 2500 }
+      ]
+    },
+
+    { "path": "06-operacao/09-gdrive-folder.png",
+      "session": "gcp",
+      "actions": [
+        { "goto": "https://drive.google.com/drive/my-drive" },
+        { "wait": 3000 }
+      ]
+    },
+
+    { "_comment": "================ CAPÍTULO 07 — Troubleshooting ================" },
+
+    { "path": "07-troubleshooting/01-n8n-executions.png",
+      "session": "n8n",
+      "actions": [
+        { "goto": "{{N8N_URL}}/executions" },
+        { "wait": 2000 }
+      ]
+    },
+
+    { "path": "07-troubleshooting/02-supabase-logs.png",
+      "session": "supabase",
+      "actions": [
+        { "goto": "{{SUPABASE_DASHBOARD}}" },
+        { "click": "a[href*='/logs'], a:has-text('Logs')" },
+        { "wait": 2500 }
+      ]
+    },
+
+    { "path": "07-troubleshooting/03-devtools.png",
+      "session": "front",
+      "actions": [
+        { "goto": "{{FRONT_URL}}" },
+        { "wait": 2000 }
+      ],
+      "_note": "Esse print é manual: o reader deve abrir F12/DevTools. O capturador só registra a tela do app; a aba Network deve ser adicionada à mão em screenshots/_manual/ se necessário."
+    }
+  ]
+}

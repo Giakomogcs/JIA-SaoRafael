@@ -1,0 +1,21 @@
+{
+  "name": "saorafael-playbook-scripts",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Gerador do Playbook.docx a partir de playbook/content.json",
+  "scripts": {
+    "build:playbook": "node build-playbook-docx.mjs",
+    "capture": "node capture-screenshots.mjs",
+    "playwright:install": "playwright install chromium"
+  },
+  "dependencies": {
+    "docx": "^9.0.2",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.49.0",
+    "sharp": "^0.34.5"
+  },
+  "optionalDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.0"
+  }
+}

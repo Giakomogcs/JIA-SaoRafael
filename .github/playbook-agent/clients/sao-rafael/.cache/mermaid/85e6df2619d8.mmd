@@ -1,0 +1,7 @@
+erDiagram
+  AUTH_USERS ||--o{ CHAT_MESSAGE        : escreve
+  AUTH_USERS ||--o{ WIZARD_SUBMISSION   : submete
+  AUTH_USERS ||--o{ CLIENTS             : cadastra
+  CLIENTS ||--o{ WIZARD_SUBMISSION      : "tem orçamentos"
+  DOC_METADATA ||--o{ DOCUMENTS         : "1:N chunks"
+  DOC_METADATA ||--o{ DOC_ROWS          : "1:N linhas"

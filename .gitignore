@@ -44,7 +44,7 @@ package-lock.json
 
 # --- Playbook agent (isolado, ferramenta interna de handover) ---
 # Não publica nada do agente de playbook no GitHub.
-.github/playbook-agent/
-.github/agents/playbook*.agent.md
-.github/chatmodes/playbook.chatmode.md
+#.github/playbook-agent/
+#.github/agents/playbook*.agent.md
+#.github/chatmodes/playbook.chatmode.md
 # (mantém .github/workflows/ e demais customizações versionadas)

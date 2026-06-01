@@ -1,0 +1,126 @@
+﻿T: PLAYBOOK
+T: FaÃ§a o login no 
+T: Cloudfy
+T:  atravÃ©s do site: 
+T: https://cloudfy.space/login
+IMG: rId7
+T: No menu vertical da esquerda, clique em 
+T: ServiÃ§os
+T: . 
+IMG: rId8
+IMG: rId9
+T: No serviÃ§o 
+T: n8n (Automation Platform)
+T:  clique no botÃ£o destacado para acessar as configuraÃ§Ãµes do n8n.
+IMG: rId10
+IMG: rId11
+T: No n8n, clique na aba 
+T: Admin
+T: .
+IMG: rId12
+IMG: rId13
+T: Em 
+T: URL
+T:  estarÃ¡ o Link de acesso direto ao seu 
+T: n8n.io â€“ Workflow Automation
+T: .
+IMG: rId14
+T: Clique no botÃ£o destacado para abrir a pÃ¡gina do 
+T: n8n.io â€“ Workflow Automation
+T:  numa nova aba do navegador.
+IMG: rId15
+T: Essa Ã© a pÃ¡gina de acesso direto ao seu 
+T: n8n.io â€“ Workflow Automation
+T:  que serÃ¡ aberta numa nova aba do navegador.
+IMG: rId16
+T: Para realizar o acesso no 
+T: n8n.io â€“ Workflow Automation
+T:  primeiramente volte ao 
+T: Cloudfy, 
+T: pois serÃ¡ usado o 
+T: Email
+T:  e 
+T: Senha do n8n
+T:  que estÃ£o na mesma pÃ¡gina 
+T: Admin
+T:  do n8n no 
+T: PASSO 5
+T: .
+IMG: rId17
+T: Clique no botÃ£o destacado para copiar o 
+T: Email
+T:  e 
+T: Senha do n8n
+T: .
+IMG: rId18
+T: ApÃ³s realizar o login no 
+T: n8n.io â€“ Workflow Automation
+T: , clique no botÃ£o 
+T: Create workflow
+T:  destacado.
+IMG: rId19
+T: No canto superior direito, clique no botÃ£o 
+T: trÃªs pontos (...)
+T:  e clique em 
+T: Import from file...
+IMG: rId20
+IMG: rId21
+T: Selecione o arquivo de extensÃ£o .json
+IMG: rId22
+T: Ao importar o seu primeiro workflow nÃ£o existirÃ¡ credenciais cadastradas, por isso podem existir alguns erros nos nÃ³s.
+T: vamos comeÃ§ar criando a credencial para o Postgresql
+T:  Encontre um nÃ³ do Postgresql e clique duas vezes nele
+IMG: rId23
+T:  Criar uma credencial
+T: No select â€œCredential to connect withâ€ clicar na seta para abrir as opÃ§Ãµes, e selecionar a opÃ§Ã£o â€œ+ Create new credentialâ€
+IMG: rId24
+T: ao selecionar essa opÃ§Ã£o aparecerÃ¡ essa tela, para a inserÃ§Ã£o das configuraÃ§Ãµes do banco de dados que o agente de IA usarÃ¡ no RAG
+IMG: rId25
+T:  Encontrar os dados para conectar no Postgresql
+T: Em uma outra aba no navegador vÃ¡ ao 
+T: Cloudfy
+T: , no Menu selecione 
+T: ServiÃ§os
+IMG: rId26
+T: Clique no Supabase
+T: Na aba â€œ
+T: Database
+T: â€ encontrarÃ¡ 
+T: URL de ConexÃ£o (Cloudfy) â†’ Host (n8n)
+T: Banco de dados (Cloudfy) â†’ Database (n8n)
+T: Banco de dados (Cloudfy) â†’ User (n8n)  
+T: Senha (Cloudfy) â†’ Password (n8n)
+T: Porta (Cloudfy) â†’ Port (n8n)
+IMG: rId27
+T: Com isso basta preencher os campos e testar a conexÃ£o.
+IMG: rId28
+T:  Encontre o nÃ³ do Supabase e clique duas vezes
+IMG: rId29
+T: No select â€œCredential to connect withâ€ clicar na seta para abrir as opÃ§Ãµes, e selecionar a opÃ§Ã£o â€œ+ Create new credentialâ€
+IMG: rId30
+T: ao selecionar essa opÃ§Ã£o aparecerÃ¡ essa tela, para a inserÃ§Ã£o das configuraÃ§Ãµes do Supabase que o agente de IA usarÃ¡ no RAG
+IMG: rId31
+T:  Encontrar os dados para conectar no Supabase
+T: Em uma outra aba no navegador vÃ¡ ao 
+T: Cloudfy
+T: , no Menu selecione 
+T: ServiÃ§os
+IMG: rId26
+T: Clique no Supabase. selecione a aba â€œ
+T: Admin
+T: â€ encontrarÃ¡ 
+T: URL (Cloudfy) â†’ Host (n8n)
+T: Chave pÃºblica (Cloudfy) â†’ Service Role Secret (n8n)
+IMG: rId32
+T: Com isso basta preencher os campos e testar a conexÃ£o.
+IMG: rId33
+T:  Conectar o Google Drive
+T: https://console.cloud.google.com/
+IMG: rId34
+T: em 
+T: https://console.cloud.google.com/auth/clients
+IMG: rId35
+T: Crie um projeto, coloque a url que estÃ¡ mostrando na credencial do google drive pelo n8n
+T: E assim terÃ¡ a chave secreta e o id do cliente
+IMG: rId36
+T: E assim preencher esses dados no n8n pra salvar a credencial

@@ -1,0 +1,16 @@
+sequenceDiagram
+  actor U as Usuário
+  participant FE as front.html
+  participant AUTH as Supabase Auth
+  participant SB as PostgreSQL + RLS
+  participant N as n8n
+
+  U->>FE: login (email + senha)
+  FE->>AUTH: signInWithPassword
+  AUTH-->>FE: access_token (JWT)
+  FE->>SB: SELECT (Authorization: Bearer JWT)
+  SB->>SB: avalia policies por auth.uid()
+  SB-->>FE: apenas linhas permitidas
+  FE->>N: POST webhook (Authorization: Bearer JWT)
+  N->>SB: query com JWT repassado
+  SB-->>N: linhas filtradas por RLS

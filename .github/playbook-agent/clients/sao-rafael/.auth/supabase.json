@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "https://longflatworm-supabase.cloudfy.live",
+      "localStorage": [
+        {
+          "name": "react-resizable-panels:default-layout-content",
+          "value": "{\"panel-content\":{\"expandToSizes\":{},\"layout\":[70]}}"
+        },
+        {
+          "name": "last-visited-organization",
+          "value": "\"default-org-slug\""
+        }
+      ]
+    }
+  ]
+}

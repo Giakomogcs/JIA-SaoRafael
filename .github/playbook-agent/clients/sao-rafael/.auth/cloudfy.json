@@ -1,0 +1,37 @@
+{
+  "cookies": [
+    {
+      "name": "_dd_s",
+      "value": "aid=cee0c356-f53f-4512-9668-a69dfa01c5d1&rum=2&id=e4006e4b-9ab0-4c63-bacf-cc41932466a0&created=1779886376738&expire=1779887277754&logs=1",
+      "domain": "cloudfy.space",
+      "path": "/",
+      "expires": 1811422377,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://cloudfy.space",
+      "localStorage": [
+        {
+          "name": "cloudfy-selected-infrastructure",
+          "value": "a3bfeb29-3f18-4d5d-a8f4-fc165905b9ce"
+        },
+        {
+          "name": "sb-xovjrwyadyzgskwbefkf-auth-token",
+          "value": "{\"access_token\":\"eyJhbGciOiJIUzI1NiIsImtpZCI6ImdsUmdMbmgzaFBxaTV5ak0iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3hvdmpyd3lhZHl6Z3Nrd2JlZmtmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiM2MzMDBmOS0wMDdiLTRhOGEtYmUxNC00YTNiNjFlZDNjOWEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzc5ODg5OTc3LCJpYXQiOjE3Nzk4ODYzNzcsImVtYWlsIjoiaXN0aWMuc3BAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNFTkFJIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3Nzk4ODYzNzd9XSwic2Vzc2lvbl9pZCI6ImFkYmE4NTM1LTk4OGQtNGRkMy04ZjI4LTQ2M2RhZjQwZWFlYSIsImlzX2Fub255bW91cyI6ZmFsc2V9.kP_bkJfAx-XaJtWs9cbVVNtDhdiLP5NL9XDSUOH-j50\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1779889977,\"refresh_token\":\"yerfl4vzfjhm\",\"user\":{\"id\":\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"istic.sp@gmail.com\",\"email_confirmed_at\":\"2026-03-16T12:42:06.235946Z\",\"phone\":\"\",\"confirmed_at\":\"2026-03-16T12:42:06.235946Z\",\"last_sign_in_at\":\"2026-05-27T12:52:57.932889835Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true,\"name\":\"SENAI\"},\"identities\":[{\"identity_id\":\"77867a09-107d-485c-9af6-369c073e86c6\",\"id\":\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\",\"user_id\":\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\",\"identity_data\":{\"email\":\"istic.sp@gmail.com\",\"email_verified\":false,\"phone_verified\":false,\"sub\":\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-03-16T12:42:06.233991Z\",\"created_at\":\"2026-03-16T12:42:06.234042Z\",\"updated_at\":\"2026-03-16T12:42:06.234042Z\",\"email\":\"istic.sp@gmail.com\"}],\"created_at\":\"2026-03-16T12:42:06.231526Z\",\"updated_at\":\"2026-05-27T12:52:57.936141Z\",\"is_anonymous\":false},\"weak_password\":null}"
+        },
+        {
+          "name": "userpilotSDK1616390823",
+          "value": "{\"userpilotIdentifiedObj1616390823\":\"{\\\"id\\\":\\\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\\\",\\\"name\\\":\\\"SENAI\\\",\\\"email\\\":\\\"istic.sp@gmail.com\\\"}\",\"userpilotUserId1616390823\":\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\"}"
+        },
+        {
+          "name": "_userpilot_TrackData1616390823",
+          "value": "[{\"title\":\"login\",\"meta\":\"{\\\"userId\\\":\\\"b3c300f9-007b-4a8a-be14-4a3b61ed3c9a\\\",\\\"email\\\":\\\"istic.sp@gmail.com\\\",\\\"timestamp\\\":\\\"2026-05-27T12:52:57.879Z\\\"}\"}]"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,834 @@
+{
+  "meta": {
+    "clientName": "São Rafael",
+    "title": "Playbook de Transferência — Plataforma <CLIENTE>",
+    "subtitle": "Wizard de Orçamentos + Assistente IA + CRM — Operação sobre Cloudfy (n8n + Supabase)",
+    "version": "1.0.0",
+    "generatedAt": "",
+    "audience": "Equipe técnica e operacional do <CLIENTE>",
+    "confidentiality": "Confidencial",
+    "brand": {
+      "primaryColor": "0B0B0B",
+      "accentColor": "E30613",
+      "accentDark": "8B0410",
+      "inkColor": "111111",
+      "logoPath": "brand/senai-logo.png",
+      "logoAltText": "SENAI-SP · Distrito Tecnológico",
+      "programName": "Distrito Tecnológico · Inovação e Indústria Conectadas",
+      "footerNote": "SENAI-SP · Distrito Tecnológico   ·   Playbook de Transferência de Tecnologia"
+    }
+  },
+  "chapters": [
+    {
+      "id": "00-visao-geral",
+      "number": 0,
+      "title": "Visão Geral da Arquitetura",
+      "summary": "A plataforma é serverless-friendly: o frontend é um único HTML estático, o backend são workflows n8n hospedados no Cloudfy, e o banco é Supabase (também no Cloudfy) com RLS por papel. Não há servidor próprio para manter.",
+      "objectives": [
+        "Entender as três camadas (Frontend, n8n, Supabase) e como elas se comunicam",
+        "Reconhecer onde cada componente é hospedado dentro do Cloudfy",
+        "Identificar as integrações externas (Azure OpenAI, Google Drive, Gemini, OpenRouter)"
+      ],
+      "sections": [
+        {
+          "heading": "O que a aplicação faz, na prática",
+          "intro": "Antes de mergulhar na arquitetura, três telas que o usuário final vê:",
+          "table": {
+            "headers": ["Tela", "Quem usa", "O que faz"],
+            "rows": [
+              ["**Login** (`front.html`)", "Representante e Admin", "Autentica via Supabase. Se o `company_name` no perfil não bater com `\"saorafael\"`, o acesso é negado."],
+              ["**Wizard de Orçamento**", "Representante", "Formulário multi-etapas que coleta dados do projeto, valida cada etapa com IA (Azure OpenAI consultando a base RAG) e gera um protocolo `SR-AAAAMM-NNNN`."],
+              ["**Chat com IA**", "Representante e Admin", "Assistente conversacional que consulta o manual técnico (RAG), regras comerciais e o histórico de orçamentos do próprio usuário."],
+              ["**Painel Administração**", "Apenas Admin", "Aparece no menu lateral só para `role = 'admin'`. Gerencia usuários, clientes (CNPJ + contato), orçamentos finalizados e dispara reindexação da base de conhecimento."]
+            ]
+          },
+          "notes": [
+            { "type": "info", "title": "Tudo cabe em um arquivo HTML", "body": "O frontend inteiro é o `front.html`. Não há build step, não há Node.js no servidor — o próprio n8n serve o arquivo via webhook (capítulo 5). Para 'atualizar o front', basta editar o HTML e salvar o workflow." }
+          ]
+        },
+        {
+          "heading": "Camadas da plataforma",
+          "intro": "Três blocos independentes que conversam por HTTPS:",
+          "table": {
+            "caption": "Componentes principais",
+            "headers": ["Camada", "Tecnologia", "Hospedagem", "Função"],
+            "rows": [
+              ["Frontend", "HTML + JS (Tailwind CDN)", "Servido pelo n8n via webhook", "Wizard de orçamentos, chat IA, painel admin"],
+              ["Orquestração", "n8n (workflows JSON)", "Cloudfy → Serviços → n8n", "Webhooks REST, validação por IA, ingestão RAG"],
+              ["Banco de dados", "PostgreSQL 15 + pgvector", "Cloudfy → Serviços → Supabase", "Auth, clientes, orçamentos, histórico de chat, vetores RAG"]
+            ]
+          }
+        },
+        {
+          "heading": "Diagrama de comunicação",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "flowchart LR\n  USR([\"Usuário (Rep/Admin)\"])\n  FE[\"front.html<br/>(servido pelo n8n)\"]\n  N8N[\"n8n (Cloudfy)<br/>workflows\"]\n  SB[(\"Supabase (Cloudfy)<br/>PostgreSQL + RLS\")]\n  PGV[(\"pgvector\")]\n  AZ[\"Azure OpenAI\"]\n  GD[\"Google Drive\"]\n  GEM[\"Gemini Embeddings\"]\n\n  USR -->|HTTPS| FE\n  FE -->|JWT + RPC| SB\n  FE -->|JWT + Webhook| N8N\n  N8N -->|SQL| SB\n  N8N -->|pgvector| PGV\n  N8N -->|chat + embed| AZ\n  N8N -->|OAuth2| GD\n  N8N -->|embed| GEM\n  SB --- PGV",
+            "caption": "Fluxo principal de dados entre frontend, n8n e Supabase"
+          }
+        },
+        {
+          "heading": "Integrações externas",
+          "notes": [
+            {
+              "type": "info",
+              "title": "Contas que você (CLIENTE) precisa providenciar",
+              "body": "Cada uma é configurada como **credencial** dentro do n8n. As chaves não viajam para o frontend.",
+              "items": []
+            }
+          ],
+          "table": {
+            "headers": ["Serviço", "Para quê", "Onde criar"],
+            "rows": [
+              ["Azure OpenAI", "LLM principal (validação do wizard + chat)", "portal.azure.com → Azure OpenAI Service"],
+              ["Google Cloud / Drive", "Pasta com documentos da base de conhecimento (RAG)", "console.cloud.google.com → OAuth2 Client"],
+              ["Google Gemini", "Embeddings na ingestão RAG", "ai.google.dev → API key"],
+              ["OpenRouter", "LLM auxiliar (resumo) na ingestão RAG", "openrouter.ai → API key"]
+            ]
+          }
+        },
+        {
+          "heading": "Fluxos principais",
+          "intro": "Três cenários cobrem mais de 90% do uso da plataforma. Entenda-os antes de mergulhar nos workflows individuais.",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "sequenceDiagram\n  actor U as Representante\n  participant FE as front.html\n  participant SB as Supabase (RLS)\n  participant N as n8n / AgentRag\n  participant AZ as Azure OpenAI\n  participant W as n8n / Wizard Submit\n\n  U->>FE: Inicia wizard\n  FE->>SB: busca cliente (RPC)\n  SB-->>FE: cliente ou null\n  U->>FE: preenche etapa N\n  FE->>N: POST validação (JWT)\n  N->>AZ: chat com contexto RAG\n  AZ-->>N: sugestões + flags\n  N-->>FE: JSON estruturado\n  FE->>FE: Reality Check (JS)\n  U->>FE: revisa e envia\n  FE->>W: POST submit\n  W->>SB: gera protocolo + UPSERT\n  W-->>FE: { protocol, status }",
+            "caption": "Fluxo 1 — Submissão de orçamento (Wizard)"
+          }
+        },
+        {
+          "heading": "Fluxo 2 — Chat com RAG",
+          "intro": "O assistente conversacional combina o histórico do usuário com uma busca vetorial na base de conhecimento.",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "sequenceDiagram\n  actor U as Usuário\n  participant FE as front.html\n  participant N as n8n / AgentRag\n  participant VS as pgvector\n  participant SB as Supabase\n  participant AZ as Azure OpenAI\n\n  U->>FE: envia mensagem\n  FE->>SB: insert chat_message\n  FE->>N: POST /AgentRag (JWT)\n  N->>VS: similarity_search\n  VS-->>N: chunks relevantes\n  N->>SB: tool: consulta orçamentos\n  SB-->>N: rows\n  N->>AZ: gera resposta final\n  AZ-->>N: texto + traces\n  N->>SB: insert mensagem AI\n  N-->>FE: resposta\n  FE-->>U: render Markdown",
+            "caption": "Fluxo 2 — Chat com memória + RAG"
+          }
+        },
+        {
+          "heading": "Fluxo 3 — Ingestão RAG",
+          "intro": "Disparada manualmente (webhook) ou por agendamento. Lê documentos do Google Drive, gera embeddings e popula o vector store.",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "sequenceDiagram\n  participant T as Trigger\n  participant N as n8n / RAG\n  participant GD as Google Drive\n  participant EX as Extractors\n  participant GEM as Gemini Embeddings\n  participant SB as Supabase\n  participant VS as pgvector\n\n  T->>N: dispara workflow\n  N->>GD: lista arquivos\n  GD-->>N: metadata\n  loop por arquivo\n    N->>GD: download\n    N->>EX: extract (pdf/xlsx/md)\n    EX-->>N: chunks\n    N->>SB: upsert metadata\n    N->>GEM: embeddings(chunks)\n    GEM-->>N: vectors\n    N->>VS: insert chunks + vectors\n  end\n  N-->>T: status + counters",
+            "caption": "Fluxo 3 — Ingestão de documentos para o RAG"
+          }
+        },
+        {
+          "heading": "Modelo de dados",
+          "intro": "Sete entidades cobrem todo o domínio: autenticação, CRM, orçamentos, chat e a base de conhecimento.",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "erDiagram\n  AUTH_USERS ||--o{ CHAT_MESSAGE        : escreve\n  AUTH_USERS ||--o{ WIZARD_SUBMISSION   : submete\n  AUTH_USERS ||--o{ CLIENTS             : cadastra\n  CLIENTS ||--o{ WIZARD_SUBMISSION      : \"tem orçamentos\"\n  DOC_METADATA ||--o{ DOCUMENTS         : \"1:N chunks\"\n  DOC_METADATA ||--o{ DOC_ROWS          : \"1:N linhas\"",
+            "caption": "Entidades principais (prefixo de schema omitido para clareza)"
+          },
+          "table": {
+            "caption": "Tabelas do schema (todas com prefixo `saorafael_`)",
+            "headers": ["Tabela", "Conteúdo", "Quem escreve"],
+            "rows": [
+              ["clients", "Cadastro de clientes (CNPJ, contato, endereço)", "Frontend via RPC (representante autenticado)"],
+              ["wizard_submission", "Orçamento finalizado + protocolo SR-AAAAMM-NNNN", "Workflow Wizard Submit (n8n)"],
+              ["chat_message", "Histórico de chat (user + assistant)", "Frontend (user) + workflow AgentRag (assistant)"],
+              ["documents", "Chunks de texto + embeddings (pgvector)", "Workflow RAG (ingestão)"],
+              ["document_metadata", "1 linha por documento indexado (título, URL, updated_at)", "Workflow RAG"],
+              ["document_rows", "Linhas estruturadas de planilhas indexadas", "Workflow RAG"]
+            ]
+          }
+        },
+        {
+          "heading": "Autenticação e RLS",
+          "intro": "O frontend nunca usa chaves de service role. Todo acesso a dados passa por um JWT emitido pelo Supabase Auth e validado pelas policies de RLS de cada tabela.",
+          "diagram": {
+            "kind": "mermaid",
+            "code": "sequenceDiagram\n  actor U as Usuário\n  participant FE as front.html\n  participant AUTH as Supabase Auth\n  participant SB as PostgreSQL + RLS\n  participant N as n8n\n\n  U->>FE: login (email + senha)\n  FE->>AUTH: signInWithPassword\n  AUTH-->>FE: access_token (JWT)\n  FE->>SB: SELECT (Authorization: Bearer JWT)\n  SB->>SB: avalia policies por auth.uid()\n  SB-->>FE: apenas linhas permitidas\n  FE->>N: POST webhook (Authorization: Bearer JWT)\n  N->>SB: query com JWT repassado\n  SB-->>N: linhas filtradas por RLS",
+            "caption": "JWT do Supabase é a fonte única de identidade — RLS faz o resto"
+          },
+          "notes": [
+            {
+              "type": "info",
+              "title": "Três papéis lógicos",
+              "body": "As policies leem `auth.users.raw_user_meta_data->>'role'` para distinguir:",
+              "items": [
+                "**user** — vê apenas seus próprios dados (orçamentos, chats, clientes que cadastrou)",
+                "**admin** — vê e gerencia tudo do tenant (usuários, orçamentos, clientes)",
+                "**service_role** — usado apenas pelo n8n para tarefas internas (ingestão RAG, geração de protocolo)"
+              ]
+            },
+            {
+              "type": "warning",
+              "title": "Nunca exponha a service role",
+              "body": "Essa chave bypassa RLS. Ela vive **somente** dentro das credenciais do n8n no Cloudfy. Se vazar, qualquer pessoa consegue ler e escrever em qualquer tabela."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "01-acesso-cloudfy",
+      "number": 1,
+      "title": "Acesso ao Cloudfy e aos Serviços",
+      "summary": "Como entrar no Cloudfy, encontrar os serviços n8n e Supabase, e obter as informações de acesso de cada um.",
+      "objectives": [
+        "Fazer login no Cloudfy",
+        "Localizar e abrir o serviço n8n",
+        "Localizar e abrir o serviço Supabase",
+        "Identificar onde estão usuário/senha e URLs de cada serviço"
+      ],
+      "sections": [
+        {
+          "heading": "Login no Cloudfy",
+          "steps": [
+            { "n": 1, "action": "Abra **https://cloudfy.space/login** no navegador.", "screenshot": "01-acesso-cloudfy/01-login.png", "caption": "Tela de login do Cloudfy" },
+            { "n": 2, "action": "Entre com as credenciais fornecidas pelo Cloudfy ao <CLIENTE>.", "expected": "Você é redirecionado para o dashboard inicial." }
+          ]
+        },
+        {
+          "heading": "Localizar o serviço n8n",
+          "intro": "Cada serviço no Cloudfy tem uma página interna com várias abas (**Geral**, **Database**, **Admin**, **Network**…). Para configurar o n8n você precisa de duas dessas abas: **Admin** (URL pública, e-mail/senha de login) e **Database** (Postgres interno do n8n, usado só se você for plugar o n8n no banco do próprio Cloudfy).",
+          "steps": [
+            { "n": 1, "action": "No menu vertical da esquerda, clique em **Serviços**.", "screenshot": "01-acesso-cloudfy/02-menu-servicos.png", "caption": "Menu lateral com a opção Serviços destacada" },
+            { "n": 2, "action": "Identifique o card **n8n (Automation Platform)** e clique no botão para abrir suas configurações.", "screenshot": "01-acesso-cloudfy/03-card-n8n.png" },
+            { "n": 3, "action": "Você cai na página do serviço n8n. No topo, observe a barra de abas (**Geral · Database · Admin · Network**) e clique em **Admin**.", "screenshot": "01-acesso-cloudfy/04-aba-admin-n8n.png", "caption": "Barra de abas do serviço n8n — aba Admin selecionada" },
+            { "n": 4, "action": "Em **URL** está o link de acesso direto ao seu **n8n.io – Workflow Automation**. Clique no ícone destacado para abrir numa nova aba.", "screenshot": "01-acesso-cloudfy/05-url-n8n.png", "caption": "URL pública do n8n" },
+            { "n": 5, "action": "Volte ao Cloudfy. Na mesma aba **Admin**, clique no botão destacado para copiar o **Email** e a **Senha** do n8n.", "detail": "Você usará essas credenciais na primeira tela de login do n8n.", "screenshot": "01-acesso-cloudfy/06-copiar-email-senha.png" },
+            { "n": 6, "action": "Cole as credenciais na tela do n8n e faça login.", "expected": "Você cai na home do n8n com a barra lateral de workflows." },
+            { "n": 7, "action": "(Referência) De volta à página do n8n no Cloudfy, clique na aba **Database**. Aqui ficam os dados do Postgres interno que o n8n usa para guardar workflows e execuções. **Você normalmente NÃO precisa mexer aqui** — só consulte se for plugar o n8n a um Postgres externo.", "screenshot": "01-acesso-cloudfy/04b-aba-database-n8n.png", "caption": "Aba Database do n8n — Postgres interno do próprio n8n (não confundir com o Supabase)" }
+          ],
+          "notes": [
+            { "type": "tip", "title": "Guarde o link público do n8n", "body": "É a partir dessa URL que o frontend chamará os webhooks. Você verá ela na variável `N8N_BASE` mais adiante." },
+            { "type": "warning", "title": "Database do n8n ≠ Database do Supabase", "body": "A aba **Database** que aparece dentro do serviço **n8n** é o banco operacional do n8n (workflows, execuções). O banco da aplicação São Rafael (chat, orçamentos, RAG) fica na aba **Database** do serviço **Supabase**. As duas credenciais Postgres no n8n apontam para o **Supabase**, nunca para o Postgres interno do n8n." }
+          ]
+        },
+        {
+          "heading": "Localizar o serviço Supabase",
+          "steps": [
+            { "n": 1, "action": "Em outra aba do navegador, volte ao **Cloudfy → Serviços**.", "screenshot": "01-acesso-cloudfy/07-servicos-supabase.png" },
+            { "n": 2, "action": "Clique no card **Supabase**.", "screenshot": "01-acesso-cloudfy/08-card-supabase.png" },
+            { "n": 3, "action": "A aba **Database** mostra dados de conexão Postgres (Host, Database, User, Password, Port). Use-os apenas quando o n8n pedir credencial **Postgres**.", "screenshot": "01-acesso-cloudfy/09-aba-database.png", "caption": "Aba Database — usada pela credencial Postgres do n8n" },
+            { "n": 4, "action": "A aba **Admin** mostra a **URL pública** do Supabase e a **Chave pública (service role)**. Use-os quando o n8n pedir credencial **Supabase**.", "screenshot": "01-acesso-cloudfy/10-aba-admin-supabase.png", "caption": "Aba Admin — usada pela credencial Supabase do n8n" }
+          ],
+          "notes": [
+            { "type": "warning", "title": "Cuidado com a service role", "body": "A chave **service role** do Supabase é **secreta** — bypassa RLS. Ela só pode viver dentro das credenciais do n8n. NUNCA cole essa chave no `front.html` (o frontend usa apenas a **anon key**)." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "02-supabase-setup",
+      "number": 2,
+      "title": "Setup do Banco de Dados (Supabase)",
+      "summary": "Habilitar extensões, aplicar as migrações em ordem e criar o primeiro usuário administrador.",
+      "objectives": [
+        "Habilitar as extensões pgvector e pg_trgm",
+        "Aplicar as 11 migrations na ordem correta",
+        "Criar o primeiro admin do <CLIENTE>"
+      ],
+      "prerequisites": ["Capítulo 1 concluído (acesso ao Supabase no Cloudfy)"],
+      "sections": [
+        {
+          "heading": "Habilitar extensões",
+          "intro": "No Supabase, abra **SQL Editor** e rode:",
+          "code": { "language": "sql", "body": "create extension if not exists pgvector;\ncreate extension if not exists pg_trgm;" },
+          "steps": [
+            { "n": 1, "action": "No menu lateral do Supabase, clique em **SQL Editor**.", "screenshot": "02-supabase-setup/01-sql-editor.png" },
+            { "n": 2, "action": "Cole o bloco acima e clique em **Run**.", "expected": "Mensagem `Success. No rows returned.`" }
+          ]
+        },
+        {
+          "heading": "Aplicar migrations em ordem",
+          "intro": "Há duas formas de aplicar o bundle de migrations. A recomendada é **via webhook** depois que o n8n estiver com o workflow `SãoRafael-DatabaseSetup` importado (capítulo 3). Como referência, abaixo está a ordem manual para rodar diretamente no SQL Editor:",
+          "table": {
+            "caption": "Ordem obrigatória das migrations",
+            "headers": ["Ordem", "Arquivo", "O que faz"],
+            "rows": [
+              ["1", "001_base_tables.sql", "Tabelas de chat, submissions e view de sessões"],
+              ["2", "002_user_crud_functions.sql", "RPCs admin para gestão de usuários"],
+              ["3", "003_rls_policies.sql", "Policies RLS por user/admin/service_role"],
+              ["4", "004_auto_user_id_trigger.sql", "Trigger BEFORE INSERT preenchendo user_id"],
+              ["5", "005_session_management.sql", "RPCs list/get/delete/prune de sessões"],
+              ["6", "006_seed_admin.sql", "Bootstrap do primeiro admin"],
+              ["7", "007_self_update_name.sql", "RPC para usuário atualizar o próprio nome"],
+              ["8", "009_fix_delete_policy.sql", "Hotfix: delete para admin em submissions"],
+              ["9", "010_fix_chat_message_user_id.sql", "Hotfix: user_id em chat"],
+              ["10", "011_clients_table_seed.sql", "Tabela `clients` + RPCs de busca + backfill"],
+              ["11", "012_clients_rls_policies.sql", "RLS para `clients`"]
+            ]
+          },
+          "notes": [
+            { "type": "tip", "title": "Atalho via n8n", "body": "Depois de importar `SãoRafael-DatabaseSetup` (capítulo 3), basta disparar `POST /webhook/saorafael-DatabaseSetup` com `{\"mode\":\"full\"}` para rodar tudo de uma vez." }
+          ]
+        },
+        {
+          "heading": "Criar o primeiro administrador",
+          "intro": "O front.html valida o login contra o Supabase Auth e exige que o `user_metadata.company_name` bata com a constante `COMPANY_NAME = \"saorafael\"`. Sem isso, o login dá *\"Usuário não pertence a esta empresa\"*. O `user_metadata.role = 'admin'` libera o menu Administração (gestão de usuários, clientes e orçamentos).",
+          "steps": [
+            { "n": 1, "action": "No Supabase, abra **Authentication → Users** (menu lateral esquerdo, ícone de cadeado) e clique em **Add user → Create new user** (botão no canto superior direito).", "screenshot": "02-supabase-setup/02-add-user.png" },
+            { "n": 2, "action": "Preencha **e-mail** `admin@<dominio-do-cliente>.com.br` e **senha inicial** `@Admin123` (padrão de bootstrap — o cliente troca depois pelo próprio painel). Marque **Auto Confirm User** para não precisar abrir e-mail.", "expected": "Usuário aparece na lista com `id` (UUID) preenchido e coluna **Confirmed** ✓." },
+            { "n": 3, "action": "Volte ao **SQL Editor** e rode a query abaixo (substitua somente o e-mail; o `company_name = 'saorafael'` é fixo e tem que casar com o front.html).", "code": { "language": "sql", "body": "update auth.users\n   set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)\n        || jsonb_build_object(\n             'company_name', 'saorafael',\n             'role',         'admin',\n             'full_name',    'Administrador <CLIENTE>'\n           )\n where email = 'admin@<dominio-do-cliente>.com.br';" }, "expected": "Mensagem `UPDATE 1`. Se vier `UPDATE 0` o e-mail está digitado errado." }
+          ],
+          "notes": [
+            { "type": "info", "title": "Convenção padrão de bootstrap", "body": "**E-mail:** `admin@<dominio-do-cliente>.com.br` (ou sem o `.br` se o domínio for `.com`). **Senha:** `@Admin123`. **Papel:** `admin`. Este é só o usuário-semente para abrir a porta — depois o cliente cria os usuários reais pelo painel Administração → Usuários e pode (deve) trocar a senha do admin." },
+            { "type": "danger", "title": "Sem admin = sem gerenciamento", "body": "Sem pelo menos um usuário com `role = 'admin'` E `company_name = 'saorafael'`, não é possível criar outros usuários pelo painel. Não pule esse passo." },
+            { "type": "warning", "title": "company_name é case-sensitive", "body": "O valor `'saorafael'` (minúsculas, sem espaço) bate exatamente com `const COMPANY_NAME = \"saorafael\";` no `front.html`. Trocar para 'Sao Rafael', 'SaoRafael' ou outro casing quebra o login com a mensagem *\"Usuário não pertence a esta empresa.\"*." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "03-n8n-import",
+      "number": 3,
+      "title": "Importação dos Workflows no n8n",
+      "summary": "Importar os 8 workflows JSON no n8n do Cloudfy. Nesta etapa eles vão acusar erros de credencial — é esperado. Os erros somem no capítulo 4.",
+      "objectives": [
+        "Importar os 8 workflows no n8n",
+        "Ativar cada workflow",
+        "Entender o papel de cada um"
+      ],
+      "prerequisites": ["Capítulo 1 concluído"],
+      "sections": [
+        {
+          "heading": "Importar cada workflow",
+          "steps": [
+            { "n": 1, "action": "No n8n, clique em **Create workflow** (canto superior direito).", "screenshot": "03-n8n-import/01-create-workflow.png" },
+            { "n": 2, "action": "Clique nos **três pontos (...)** e selecione **Import from file...**", "screenshot": "03-n8n-import/02-import-from-file.png" },
+            { "n": 3, "action": "Selecione um arquivo `.json` da pasta `workflows/` recebida no pacote de transferência.", "expected": "O workflow aparece no canvas, possivelmente com nós marcados em vermelho (credenciais ainda não criadas)." },
+            { "n": 4, "action": "Renomeie se desejar e clique em **Save**.", "screenshot": "03-n8n-import/03-save-workflow.png" },
+            { "n": 5, "action": "Repita os passos 1-4 para cada um dos 8 arquivos." }
+          ],
+          "notes": [
+            { "type": "info", "title": "Erros vermelhos nos nós são esperados agora", "body": "Eles vão desaparecer assim que as credenciais forem criadas no próximo capítulo." }
+          ]
+        },
+        {
+          "heading": "Inventário dos workflows",
+          "table": {
+            "caption": "O que cada workflow faz",
+            "headers": ["Arquivo", "Função", "Endpoints expostos"],
+            "rows": [
+              ["São Rafael - AgentRag (Wizard + Chat).json", "Agente unificado: validação do wizard + chat livre com RAG", "POST /saorafael-AgentRag, POST /saorafael-prune-history, GET /saorafael_health"],
+              ["São Rafael - Wizard Submit (Save Orçamento).json", "Persiste o orçamento final, gera protocolo SR-YYYYMM-NNNN", "POST /saorafael-wizard-submit"],
+              ["SãoRafael-Chat-GET-Sessions.json", "Lista sessões de chat do usuário", "GET /saorafael-sessions"],
+              ["SãoRafael-Chat-GET-History.json", "Mensagens de uma sessão", "GET /saorafael-history"],
+              ["SãoRafael-Chat-DELETE-Session.json", "Apaga sessão de chat", "DELETE /saorafael-session"],
+              ["SãoRafael-RAG.json", "Ingestão/reindex de docs do Google Drive", "POST /saorafael-index-drive, POST /saorafael-reset-rag"],
+              ["SãoRafael-DatabaseSetup.json", "Aplica bundle SQL via webhook", "POST /saorafael-DatabaseSetup"],
+              ["SãoRafael-Front.json", "Serve o front.html via webhook", "GET /saorafael-chat"]
+            ]
+          }
+        },
+        {
+          "heading": "Ativar todos os workflows",
+          "steps": [
+            { "n": 1, "action": "Na lista de workflows, ligue o toggle **Active** de cada um.", "screenshot": "03-n8n-import/04-toggle-active.png" }
+          ],
+          "notes": [
+            { "type": "warning", "title": "Sem Active = webhook não responde", "body": "Workflow inativo retorna 404 no webhook. Confira o toggle se algum endpoint der erro." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "04-credenciais",
+      "number": 4,
+      "title": "Configuração de Credenciais",
+      "summary": "Criar no n8n, uma a uma, as credenciais necessárias: Postgres, Supabase, Azure OpenAI, Google Drive, Gemini e OpenRouter. Sem credenciais, os workflows não rodam.",
+      "objectives": [
+        "Criar credencial Postgres apontando para o Supabase do Cloudfy",
+        "Criar credencial Supabase (service role)",
+        "Criar credenciais Azure OpenAI, Gemini, OpenRouter",
+        "Criar credencial OAuth2 do Google Drive"
+      ],
+      "prerequisites": ["Capítulos 1, 2 e 3 concluídos"],
+      "sections": [
+        {
+          "heading": "Padrão de criação de credencial no n8n",
+          "intro": "Sempre que um nó de um workflow estiver vermelho, abra-o com duplo clique, vá no select **Credential to connect with** e escolha **+ Create new credential**. Depois de criada, essa credencial fica disponível para todos os outros nós do mesmo tipo nos demais workflows — você cria uma vez por integração, não uma por nó.",
+          "steps": [
+            { "n": 1, "action": "Duplo clique no nó vermelho.", "screenshot": "04-credenciais/01-no-vermelho.png" },
+            { "n": 2, "action": "No select **Credential to connect with**, abra a seta e escolha **+ Create new credential**.", "screenshot": "04-credenciais/02-create-new-credential.png" },
+            { "n": 3, "action": "Preencha os campos conforme as próximas seções, clique em **Test** (se disponível) e depois em **Save**.", "expected": "Bolinha verde **Connection tested successfully** (ou, para credenciais sem teste embutido, apenas **Saved**)." },
+            { "n": 4, "action": "Feche o nó. O ponto vermelho some e o nó passa a mostrar o nome da credencial selecionada no rodapé.", "expected": "Workflow pode ser salvo sem erro de configuração." }
+          ],
+          "notes": [
+            { "type": "tip", "title": "Reaproveite credenciais entre workflows", "body": "Depois de criar a 1ª credencial Postgres (apontando para o Supabase), os demais nós Postgres dos outros workflows podem selecionar a mesma credencial no dropdown — sem precisar recadastrar host/usuário/senha." },
+            { "type": "warning", "title": "Nomeie de forma estável", "body": "Use nomes como `Supabase Postgres (Cloudfy)`, `Supabase REST (service_role)`, `Azure OpenAI`, `Google Drive (<cliente>)`, `Gemini`, `OpenRouter`. Nomes claros poupam horas quando alguém entrar para auditar 6 meses depois." }
+          ]
+        },
+        {
+          "heading": "Credencial 1 — Postgres (aponta para o Supabase do Cloudfy)",
+          "table": {
+            "caption": "De onde vem cada campo (Cloudfy → n8n)",
+            "headers": ["Campo no n8n", "Origem no Cloudfy"],
+            "rows": [
+              ["Host", "Cloudfy → Serviços → Supabase → aba **Database** → URL de Conexão"],
+              ["Database", "Cloudfy → Serviços → Supabase → aba **Database** → Banco de dados"],
+              ["User", "Cloudfy → Serviços → Supabase → aba **Database** → Usuário"],
+              ["Password", "Cloudfy → Serviços → Supabase → aba **Database** → Senha"],
+              ["Port", "Cloudfy → Serviços → Supabase → aba **Database** → Porta"],
+              ["SSL", "Habilitado (Enable)"]
+            ]
+          },
+          "steps": [
+            { "n": 1, "action": "Encontre um nó **Postgres** num workflow (ex.: `São Rafael - AgentRag`).", "screenshot": "04-credenciais/03-postgres-node.png" },
+            { "n": 2, "action": "Crie a credencial seguindo a tabela acima.", "screenshot": "04-credenciais/04-postgres-form.png" },
+            { "n": 3, "action": "Clique em **Test connection**.", "expected": "**Connection tested successfully**." }
+          ],
+          "notes": [
+            { "type": "tip", "title": "Reaproveite a credencial", "body": "Depois de criar a primeira credencial Postgres, todos os outros nós Postgres dos demais workflows passam a poder selecioná-la sem refazer o cadastro." }
+          ]
+        },
+        {
+          "heading": "Credencial 2 — Supabase (API REST com service role)",
+          "table": {
+            "headers": ["Campo no n8n", "Origem no Cloudfy"],
+            "rows": [
+              ["Host (URL)", "Cloudfy → Serviços → Supabase → aba **Admin** → URL"],
+              ["Service Role Secret", "Cloudfy → Serviços → Supabase → aba **Admin** → Chave pública (service role)"]
+            ]
+          },
+          "steps": [
+            { "n": 1, "action": "Encontre um nó **Supabase** num workflow.", "screenshot": "04-credenciais/05-supabase-node.png" },
+            { "n": 2, "action": "Preencha os 2 campos e clique em **Test**.", "screenshot": "04-credenciais/06-supabase-form.png", "expected": "**Connection tested successfully**." }
+          ]
+        },
+        {
+          "heading": "Credencial 3 — Google Drive (OAuth2)",
+          "intro": "É preciso criar um **OAuth Client** próprio do <CLIENTE> no Google Cloud, autorizar a URL de callback do n8n e colar Client ID + Client Secret.",
+          "steps": [
+            { "n": 1, "action": "Abra **https://console.cloud.google.com/** e crie um novo projeto (ou use um existente do <CLIENTE>)." },
+            { "n": 2, "action": "Vá em **APIs & Services → Library**, busque **Google Drive API** e clique em **Enable**." },
+            { "n": 3, "action": "Vá em **APIs & Services → OAuth consent screen**, escolha **Internal** (se a Google Workspace do <CLIENTE> permitir) ou **External**, preencha nome do app e contato." },
+            { "n": 4, "action": "Em **Credentials → Create credentials → OAuth client ID**, escolha **Web application**.", "screenshot": "04-credenciais/10-create-oauth.png" },
+            { "n": 5, "action": "No campo **Authorized redirect URIs**, cole a URL **OAuth Redirect URL** que o n8n mostra na tela de credencial Google Drive (do tipo `https://<SUA-INSTANCIA>.cloudfy.space/rest/oauth2-credential/callback`).", "screenshot": "04-credenciais/11-redirect-uri.png" },
+            { "n": 6, "action": "Salve e copie **Client ID** e **Client Secret**.", "expected": "Modal com os dois valores." },
+            { "n": 7, "action": "No n8n, cole os dois valores na credencial Google Drive e clique em **Sign in with Google**.", "expected": "Janela do Google para autorizar; ao fim, **Account connected**." }
+          ],
+          "notes": [
+            { "type": "warning", "title": "Use uma conta de serviço da empresa", "body": "Faça a autorização com uma conta de Google Workspace do <CLIENTE> (ex: `automacoes@<cliente>.com.br`), nunca com conta pessoal de funcionário — para evitar perda de acesso em desligamentos." }
+          ]
+        },
+        {
+          "heading": "Credencial 4 — Google Gemini (embeddings auxiliares no RAG)",
+          "steps": [
+            { "n": 1, "action": "Em **https://ai.google.dev/**, crie uma API key." },
+            { "n": 2, "action": "No n8n, na credencial Gemini / PaLM, cole a chave e teste." }
+          ]
+        },
+        {
+          "heading": "Credencial 5 — OpenRouter (LLM auxiliar na ingestão RAG)",
+          "steps": [
+            { "n": 1, "action": "Em **https://openrouter.ai/keys**, gere uma chave **sk-or-...**." },
+            { "n": 2, "action": "No n8n, crie a credencial **OpenAI** (compatible API) apontando para `https://openrouter.ai/api/v1` e cole a chave." }
+          ]
+        },
+        {
+          "heading": "Ajuste obrigatório dos nós HTTP Request",
+          "intro": "Alguns workflows usam nós **HTTP Request** para chamar webhooks internos do próprio n8n (ex.: o AgentRag dispara `saorafael-prune-history`, o front chama `saorafael-index-drive`, e workflows usam `host.docker.internal` em ambientes locais). Esses nós **não usam credencial** — a URL fica escrita direto no campo `URL` do nó. Quando você importa o JSON, ele vem com a URL do ambiente original e PRECISA ser ajustada para a sua instância Cloudfy.",
+          "table": {
+            "caption": "O que conferir em cada nó HTTP Request",
+            "headers": ["Campo no nó", "Como deve ficar", "Onde encontrar"],
+            "rows": [
+              ["URL", "`https://<SUA-INSTANCIA>.cloudfy.space/webhook/<path>`", "Substitua `<SUA-INSTANCIA>` pelo subdomínio da aba **Admin** do n8n no Cloudfy (capítulo 1)"],
+              ["Method", "Conforme já vem no JSON importado (POST / GET / DELETE)", "Não mexer salvo orientação explícita"],
+              ["Authentication", "**None** (são chamadas internas n8n→n8n)", "Não precisa credencial"],
+              ["Send Headers / Body", "Manter como veio do JSON", "Os payloads de exemplo já estão corretos"]
+            ]
+          },
+          "steps": [
+            { "n": 1, "action": "Em cada workflow, use **Ctrl+F** na lista de nós e filtre por `HTTP Request` para encontrar todos rapidamente." },
+            { "n": 2, "action": "Duplo clique em cada nó HTTP Request, role até o campo **URL** e troque o domínio antigo (`<dominio-de-origem>.cloudfy.space` ou `host.docker.internal`) pelo seu domínio do Cloudfy.", "expected": "URL no formato `https://<SUA-INSTANCIA>.cloudfy.space/webhook/saorafael-<algo>`." },
+            { "n": 3, "action": "Salve o workflow e confirme que o nó deixou de exibir aviso amarelo (`Could not resolve host`).", "expected": "Nó verde após o próximo trigger." }
+          ],
+          "notes": [
+            { "type": "danger", "title": "URL errada = 404 silencioso", "body": "Se o domínio do nó HTTP Request estiver errado, o workflow chamador continua executando mas a chamada interna falha com 404/timeout — e o sintoma só aparece depois (ex.: chat sem histórico, RAG sem ingestão). Ajustar essas URLs ANTES de ativar os workflows é mais barato do que diagnosticar depois." },
+            { "type": "tip", "title": "Truque: variável global", "body": "Se você for evoluir a base, considere mover o domínio para uma variável de ambiente do n8n (ex.: `N8N_PUBLIC_BASE`) e usar `{{$env.N8N_PUBLIC_BASE}}/webhook/saorafael-...` no campo URL. Aí em troca de domínio você muda em um lugar só." }
+          ]
+        },
+        {
+          "heading": "Validação final das credenciais",
+          "notes": [
+            { "type": "checklist", "title": "Antes de seguir para o frontend, confirme:", "items": [
+              "Nenhum nó dos 8 workflows está vermelho",
+              "Test connection passou em Postgres, Supabase, Azure OpenAI, Gemini, OpenRouter",
+              "Google Drive mostra **Account connected**",
+              "Todos os nós HTTP Request apontam para `https://<SUA-INSTANCIA>.cloudfy.space/webhook/...`",
+              "Cada workflow está com o toggle **Active** ligado"
+            ]}
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "05-deploy-frontend",
+      "number": 5,
+      "title": "Deploy do Frontend (front.html)",
+      "summary": "Configurar as 3 constantes no `front.html` e servi-lo pelo próprio n8n (mais simples) ou por hospedagem estática.",
+      "objectives": [
+        "Editar `SUPABASE_URL`, `SUPABASE_ANON` e `N8N_BASE` no front.html",
+        "Servir o arquivo via webhook do n8n",
+        "Validar que o login funciona ponta-a-ponta"
+      ],
+      "prerequisites": ["Capítulo 4 concluído"],
+      "sections": [
+        {
+          "heading": "Editar as constantes",
+          "intro": "Abra `front.html` num editor e localize, no topo do `<script>` principal, o bloco:",
+          "code": {
+            "language": "js",
+            "body": "const SUPABASE_URL  = 'https://<SEU-PROJETO>.supabase.co';\nconst SUPABASE_ANON = '<SUPABASE_ANON_KEY>';\nconst N8N_BASE      = 'https://<SUA-INSTANCIA>.cloudfy.space/webhook';"
+          },
+          "table": {
+            "caption": "Origem de cada constante",
+            "headers": ["Constante", "Origem"],
+            "rows": [
+              ["SUPABASE_URL", "Cloudfy → Serviços → Supabase → aba **Admin** → URL"],
+              ["SUPABASE_ANON", "Cloudfy → Serviços → Supabase → aba **Admin** → Chave **anon** (NÃO a service role)"],
+              ["N8N_BASE", "Cloudfy → Serviços → n8n → aba **Admin** → URL + sufixo `/webhook`"]
+            ]
+          },
+          "notes": [
+            { "type": "danger", "title": "ANON vs SERVICE ROLE", "body": "O frontend usa **anon key** (pública, segura — RLS protege). A **service role** SÓ vive no n8n. Trocar uma pela outra expõe o banco inteiro." }
+          ]
+        },
+        {
+          "heading": "Servir pelo workflow SãoRafael-Front",
+          "intro": "O workflow `SãoRafael-Front.json` tem um nó **Code** que devolve o conteúdo do HTML no body do webhook. Você precisa colar o `front.html` editado dentro desse nó.",
+          "steps": [
+            { "n": 1, "action": "No n8n, abra o workflow **SãoRafael-Front**.", "screenshot": "05-deploy-frontend/01-workflow-front.png" },
+            { "n": 2, "action": "Duplo clique no nó **Code (Serve HTML)** e substitua o conteúdo do `html` pelo conteúdo do seu `front.html` ajustado.", "screenshot": "05-deploy-frontend/02-code-node-html.png" },
+            { "n": 3, "action": "Salve e mantenha o workflow **Active**." },
+            { "n": 4, "action": "Abra `https://<SUA-INSTANCIA>.cloudfy.space/webhook/saorafael-chat` no navegador.", "expected": "Tela de login do sistema aparece." }
+          ],
+          "notes": [
+            { "type": "tip", "title": "Alternativa: hospedagem estática", "body": "Você pode publicar o `front.html` em Vercel, Netlify, Cloudflare Pages, S3 ou qualquer servidor estático. Só lembre de manter as constantes editadas e o domínio em CORS allowlist se for usar fetch cross-origin." }
+          ]
+        },
+        {
+          "heading": "Smoke test ponta-a-ponta",
+          "notes": [
+            { "type": "checklist", "title": "Validar antes de liberar para usuários:", "items": [
+              "Login com `admin@<dominio-do-cliente>.com.br` / `@Admin123` (criado no capítulo 2) funciona",
+              "Painel admin lista pelo menos 1 usuário (o próprio admin)",
+              "Criar um usuário comum pelo painel admin funciona",
+              "Wizard abre o passo 1 e valida com IA (testar com dados fictícios)",
+              "Chat envia uma pergunta e recebe resposta",
+              "Health-check `GET /webhook/saorafael_health` retorna 200"
+            ]}
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "06-operacao",
+      "number": 6,
+      "title": "Operação Dia-a-Dia",
+      "summary": "Como o time do <CLIENTE> usa o painel administrativo e como dispara a reindexação do RAG quando a base de conhecimento muda.",
+      "objectives": [
+        "Criar, editar e desativar usuários",
+        "Inspecionar orçamentos e clientes",
+        "Atualizar a base de conhecimento (RAG)"
+      ],
+      "sections": [
+        {
+          "heading": "Gestão de usuários",
+          "steps": [
+            { "n": 1, "action": "Faça login como admin no front.", "screenshot": "06-operacao/01-login-admin.png" },
+            { "n": 2, "action": "Abra o menu lateral **Administração → Usuários**." },
+            { "n": 3, "action": "**Criar:** clique em **Novo usuário**, preencha e-mail, nome, papel (user/admin) e senha inicial." },
+            { "n": 4, "action": "**Editar:** clique no usuário, ajuste nome ou papel, salve." },
+            { "n": 5, "action": "**Apagar:** botão lixeira → confirmação. (Soft-delete; histórico de orçamentos é preservado.)" }
+          ]
+        },
+        {
+          "heading": "Gestão de clientes e orçamentos",
+          "steps": [
+            { "n": 1, "action": "Em **Administração → Clientes**, use a busca fuzzy por CNPJ, razão social ou telefone." },
+            { "n": 2, "action": "Clique num cliente para abrir o **dossiê** com dados + lista de orçamentos anteriores." },
+            { "n": 3, "action": "Em **Administração → Orçamentos**, filtre por status, período ou representante." }
+          ]
+        },
+        {
+          "heading": "Atualizar a base de conhecimento (RAG)",
+          "intro": "A base do assistente é a pasta de Google Drive configurada na credencial OAuth do n8n. O fluxo:",
+          "steps": [
+            { "n": 1, "action": "Adicione/edite arquivos `.pdf`, `.docx`, `.xlsx`, `.csv` ou `.md` na pasta do Drive." },
+            { "n": 2, "action": "Dispare a ingestão incremental:", "code": { "language": "bash", "body": "curl -X POST https://<SUA-INSTANCIA>.cloudfy.space/webhook/saorafael-index-drive" } },
+            { "n": 3, "action": "Para limpar o índice e reindexar do zero (uso pontual):", "code": { "language": "bash", "body": "curl -X POST https://<SUA-INSTANCIA>.cloudfy.space/webhook/saorafael-reset-rag" } }
+          ],
+          "notes": [
+            { "type": "tip", "title": "Quando reindexar?", "body": "Sempre que mudar o manual técnico, regras comerciais ou guias setoriais. O assistente pega as novas respostas imediatamente após o término da ingestão." },
+            { "type": "warning", "title": "Reset apaga o índice", "body": "`saorafael-reset-rag` **apaga** todos os vetores antes de reindexar. Não rode em produção sem necessidade." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "07-troubleshooting",
+      "number": 7,
+      "title": "Troubleshooting e FAQ",
+      "summary": "Sintomas comuns, causa provável e como resolver.",
+      "objectives": ["Diagnosticar rapidamente os problemas mais comuns sem precisar abrir chamado"],
+      "sections": [
+        {
+          "heading": "Tabela de sintoma → causa → solução",
+          "table": {
+            "headers": ["Sintoma", "Causa provável", "Solução"],
+            "rows": [
+              ["Tela de login não carrega", "`SUPABASE_URL` ou `SUPABASE_ANON` errados no front.html", "Conferir aba **Admin** do Supabase no Cloudfy"],
+              ["Login retorna 401", "Usuário não existe ou senha errada", "Recriar usuário em Auth → Users no Supabase"],
+              ["Wizard não valida (erro 500)", "Credencial Azure OpenAI inválida ou deployment name divergente", "Testar credencial no n8n; conferir nome do deployment"],
+              ["Chat não responde", "Workflow `AgentRag` inativo", "Ligar toggle **Active** no n8n"],
+              ["Webhook retorna 404", "Workflow inativo ou path do webhook trocado", "Confirmar path no nó Webhook + toggle Active"],
+              ["Chat mostra mensagens de outro usuário", "RLS desabilitada ou policy ausente", "Re-rodar `003_rls_policies.sql` e `010_fix_chat_message_user_id.sql`"],
+              ["Admin não consegue apagar orçamento", "Migration 009 não aplicada", "Rodar `009_fix_delete_policy.sql`"],
+              ["RAG retorna respostas vazias", "Ingestão não rodou ou falhou", "`POST /saorafael-index-drive` e checar execuções no n8n"],
+              ["Reindex demora muito", "Pasta do Drive com muitos arquivos grandes", "Esperar; checar quota Gemini e Azure"],
+              ["Health-check retorna 500", "Banco fora do ar ou credencial Postgres errada", "Conferir Cloudfy → Serviços → Supabase → status"]
+            ]
+          }
+        },
+        {
+          "heading": "Onde olhar logs",
+          "steps": [
+            { "n": 1, "action": "**n8n:** na sidebar, clique em **Executions** para ver cada execução, com input, output e erros nó-a-nó.", "screenshot": "07-troubleshooting/01-n8n-executions.png" },
+            { "n": 2, "action": "**Supabase:** **Logs → Postgres Logs** mostra queries com erro e RLS denials.", "screenshot": "07-troubleshooting/02-supabase-logs.png" },
+            { "n": 3, "action": "**Frontend:** abra o DevTools (F12) → aba **Console** e **Network**.", "screenshot": "07-troubleshooting/03-devtools.png" }
+          ]
+        },
+        {
+          "heading": "FAQ",
+          "notes": [
+            { "type": "info", "title": "Posso trocar o modelo da Azure OpenAI?", "body": "Sim. Crie um novo deployment no Azure OpenAI Studio, depois ajuste o campo **Model / Deployment Name** em cada nó OpenAI dos workflows. Não esqueça do nó de embeddings." },
+            { "type": "info", "title": "Como faço backup do banco?", "body": "Cloudfy → Serviços → Supabase → aba **Backups**. Recomenda-se também export periódico via `pg_dump` para storage do <CLIENTE>." },
+            { "type": "info", "title": "Como restrinjo IP de acesso ao n8n?", "body": "Cloudfy → Serviços → n8n → aba **Network/Firewall** (se disponível no plano)." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "08-treinamento",
+      "number": 8,
+      "title": "Roteiro de Treinamento",
+      "summary": "Três sessões sugeridas para capacitar o time do <CLIENTE>: operacional, administrativa e técnica. Cada sessão tem objetivo claro, roteiro passo-a-passo para o instrutor e exercícios práticos.",
+      "objectives": [
+        "Plano de capacitação claro para TI, administração e usuários finais",
+        "Roteiro de instrutor com tempo estimado por bloco",
+        "Critérios objetivos para considerar a sessão concluída"
+      ],
+      "sections": [
+        {
+          "heading": "Materiais de apoio",
+          "intro": "Para todas as sessões, separe antes de começar:",
+          "table": {
+            "headers": ["Material", "Como obter", "Sessão"],
+            "rows": [
+              ["Este playbook (.docx)", "Entregue junto com o handover", "Todas"],
+              ["Acesso ao ambiente de treinamento", "Usuário `treinamento@<seu-dominio>.com.br` criado pelo admin", "1, 2"],
+              ["Lista de 2-3 cenários reais de orçamento", "Vendedor sênior do <CLIENTE>", "1"],
+              ["Acesso ao Cloudfy (n8n + Supabase)", "TI do <CLIENTE>", "3"],
+              ["Capítulo 7 (Troubleshooting) impresso", "Anexo deste playbook", "3"]
+            ]
+          },
+          "notes": [
+            {
+              "type": "tip",
+              "title": "Ambiente isolado para a Sessão 3",
+              "body": "Se possível, replique o projeto Supabase em um schema de teste antes da sessão técnica. Assim o laboratório de migrations não afeta dados reais."
+            }
+          ]
+        },
+        {
+          "heading": "Sessão 1 — Operacional (usuários finais) · 1h",
+          "intro": "Público: representantes comerciais e operadores. Objetivo: que cada participante consiga abrir um orçamento, conversar com o assistente e consultar histórico de cliente sem ajuda ao final da sessão.",
+          "steps": [
+            { "n": 1, "action": "Apresente o **fluxo de login** e mostre como ler o perfil do usuário (nome, papel) no canto superior.", "detail": "5 min — mostre também onde está o botão de trocar senha." },
+            { "n": 2, "action": "Abra o **Wizard de Orçamento** e percorra de ponta-a-ponta um cenário real (ex: câmara modular pequena para um cliente existente).", "detail": "15 min — passe deliberadamente por cada etapa, mostrando a busca de cliente, a validação por IA, o Reality Check determinístico e a confirmação final.", "expected": "Ao final, o protocolo `SR-AAAAMM-NNNN` aparece em tela e o orçamento fica registrado." },
+            { "n": 3, "action": "Mostre o **Chat com Assistente** e explique a regra: **o assistente sabe sobre dimensionamento, regras comerciais e produtos da São Rafael — não inventa preço.**", "detail": "10 min — faça 2-3 perguntas reais ao vivo. Mostre como criar nova sessão, renomear, abrir uma antiga, editar/regerar a última resposta e apagar sessão." },
+            { "n": 4, "action": "Mostre o **CRM leve**: buscar cliente por CNPJ / razão social / telefone, abrir histórico de orçamentos, duplicar um orçamento anterior como base de um novo.", "detail": "10 min" },
+            { "n": 5, "action": "Exercício guiado: cada participante monta **um orçamento próprio** (cenário entregue impresso). Instrutor circula tirando dúvidas.", "detail": "20 min", "expected": "Cada participante sai com 1 protocolo gerado por ele mesmo." }
+          ],
+          "notes": [
+            { "type": "checklist", "title": "Critério de conclusão da Sessão 1", "items": [
+              "Participante faz login e troca a própria senha",
+              "Participante gera 1 orçamento completo sem assistência",
+              "Participante usa o chat para pelo menos 1 dúvida técnica real",
+              "Participante encontra um cliente existente e consulta o histórico"
+            ]}
+          ]
+        },
+        {
+          "heading": "Sessão 2 — Administrativa · 1h",
+          "intro": "Público: administrador funcional do <CLIENTE> (gerente comercial, supervisor). Objetivo: gestão de usuários e da base de conhecimento sem precisar de TI.",
+          "steps": [
+            { "n": 1, "action": "Faça login com um usuário **admin** e abra o **Painel Admin**.", "detail": "Mostre que ele só aparece para `role: admin`." },
+            { "n": 2, "action": "Demonstre o **CRUD de usuários**: criar, editar nome/papel, resetar senha, desativar.", "detail": "10 min — explique que apagar um usuário **não** apaga os orçamentos dele (vínculo é preservado para auditoria)." },
+            { "n": 3, "action": "Abra a **lista de orçamentos** e demonstre filtros, status (`submitted`, `processing`, `completed`, `cancelled`) e exclusão inteligente (apaga cliente órfão).", "detail": "10 min" },
+            { "n": 4, "action": "Vá ao **CRM de clientes** e demonstre criar, editar e apagar cliente.", "detail": "5 min" },
+            { "n": 5, "action": "Explique conceitualmente o **RAG** sem entrar em código: o assistente lê documentos de uma pasta no Google Drive e responde com base neles.", "detail": "10 min — não cite trechos dos prompts internos. Mostre quais tipos de documento entram no RAG (manuais, regras comerciais, guias) e qual a diferença para um documento que não deve entrar (rascunho, dado pessoal)." },
+            { "n": 6, "action": "Demonstre **quando reindexar**: depois de adicionar ou trocar um documento na pasta do Drive, peça ao TI rodar `POST /saorafael-index-drive` (ou usar o botão no painel admin, se disponível).", "detail": "5 min", "expected": "O administrador entende que reindexar é uma operação segura e rotineira." },
+            { "n": 7, "action": "Exercício: o admin cria 1 usuário novo, troca o papel de outro, apaga um orçamento de teste e simula um pedido de reindex.", "detail": "15 min" }
+          ],
+          "notes": [
+            { "type": "checklist", "title": "Critério de conclusão da Sessão 2", "items": [
+              "Admin cria, edita e desativa usuário",
+              "Admin reseta senha de um usuário",
+              "Admin exclui orçamento de teste (e entende a regra de cliente órfão)",
+              "Admin sabe explicar o que é o RAG e quando reindexar"
+            ]}
+          ]
+        },
+        {
+          "heading": "Sessão 3 — Técnica (TI do CLIENTE) · 2h",
+          "intro": "Público: TI do <CLIENTE>. Objetivo: dar autonomia para operar, evoluir e resolver incidentes sem depender do fornecedor.",
+          "steps": [
+            { "n": 1, "action": "Tour pelo **Cloudfy**: como abrir n8n e Supabase, onde ficam credenciais e URLs (revisar capítulo 1 do playbook).", "detail": "15 min" },
+            { "n": 2, "action": "Tour pelo **n8n**: workflows ativos, execuções recentes, como abrir o histórico de execução de um webhook, como ler erros, como ativar/desativar um workflow.", "detail": "20 min — não modifique workflows ao vivo. Apenas leitura e diagnóstico." },
+            { "n": 3, "action": "Tour pelo **Supabase**: SQL editor, Auth (usuários e metadata), Database (tabelas + RLS policies), Storage e Backups.", "detail": "20 min — mostre como conferir se um JWT está válido e como ler uma policy de RLS." },
+            { "n": 4, "action": "Laboratório: aplicar uma **migration nova** no Supabase usando o SQL editor (use uma migration de exemplo que adicione um índice em tabela de teste).", "detail": "20 min — depois reverter com `DROP INDEX`.", "expected": "TI roda SQL com confiança e entende a regra de ordem das migrations." },
+            { "n": 5, "action": "Demonstre **rotação de uma credencial** no n8n (ex: Azure OpenAI): pegar a nova key, abrir Credentials → editar → salvar → re-rodar 1 execução para validar.", "detail": "15 min — sem clicar em Save sem aviso explícito; o objetivo é entender o procedimento, não executar." },
+            { "n": 6, "action": "Tour pelo **capítulo 7 (Troubleshooting)**: cada item é um sintoma → causa provável → ação. Faça 3 simulações verbais.", "detail": "15 min" },
+            { "n": 7, "action": "Encerre com **handover formal** dos acessos administrativos: lista de credenciais Cloudfy, papéis admin no Supabase e admin no front.", "detail": "15 min", "expected": "TI sai com todos os acessos no nome do <CLIENTE> e sem dependência operacional do fornecedor." }
+          ],
+          "notes": [
+            { "type": "checklist", "title": "Critério de conclusão da Sessão 3", "items": [
+              "TI navega pelo n8n e identifica execuções com erro sozinho",
+              "TI aplica e reverte uma migration de exemplo no Supabase",
+              "TI executa a rotação de uma credencial em ambiente de teste",
+              "TI resolve 2 dos cenários do capítulo 7 sem suporte",
+              "Todos os acessos administrativos estão no nome do <CLIENTE>"
+            ]},
+            { "type": "warning", "title": "Não treine com dados reais", "body": "Para o laboratório de migrations e rotação de credencial, use um schema de teste ou um deployment separado da Azure OpenAI. Erros em produção durante treinamento são caros e evitáveis." }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "09-handover",
+      "number": 9,
+      "title": "Checklist de Aceite / Handover",
+      "summary": "Lista objetiva para assinatura conjunta no fim da transferência.",
+      "objectives": ["Formalizar conclusão da transferência com critério objetivo"],
+      "sections": [
+        {
+          "heading": "Critérios de aceite",
+          "notes": [
+            { "type": "checklist", "title": "Infraestrutura", "items": [
+              "Cloudfy ativo com n8n e Supabase provisionados",
+              "Acessos administrativos do n8n entregues ao TI do <CLIENTE>",
+              "Acessos administrativos do Supabase entregues ao TI do <CLIENTE>",
+              "Senha do admin do front trocada pelo <CLIENTE>"
+            ]},
+            { "type": "checklist", "title": "Configuração", "items": [
+              "Todas as 11 migrations aplicadas",
+              "Todos os 8 workflows importados e ativos",
+              "Credenciais criadas e testadas (6)",
+              "Constantes do front.html ajustadas e front servido"
+            ]},
+            { "type": "checklist", "title": "Operação", "items": [
+              "Smoke test ponta-a-ponta passou (capítulo 5)",
+              "Pelo menos 1 usuário admin + 1 usuário comum criados pelo <CLIENTE>",
+              "Reindexação RAG executada com sucesso pelo time do <CLIENTE>",
+              "Backups habilitados no Supabase"
+            ]},
+            { "type": "checklist", "title": "Capacitação", "items": [
+              "Sessão 1 (operacional) realizada",
+              "Sessão 2 (administrativa) realizada",
+              "Sessão 3 (técnica) realizada",
+              "Equipe do <CLIENTE> consegue resolver os itens do capítulo 7 sem suporte"
+            ]}
+          ]
+        },
+        {
+          "heading": "Rotação de credenciais pós-handover",
+          "intro": "Antes de assinar o aceite, o <CLIENTE> deve **rotacionar todas as chaves** que foram criadas ou usadas pelo fornecedor durante a implantação. O fornecedor não deve continuar com acesso a nenhuma credencial em produção.",
+          "steps": [
+            { "n": 1, "action": "**Supabase** — gere uma nova **service role key** no painel do projeto e substitua a credencial Postgres/Supabase no n8n.", "detail": "Após salvar, rode 1 execução manual do workflow AgentRag para validar.", "expected": "Execução retorna 200 e a chave antiga deixa de funcionar." },
+            { "n": 2, "action": "**Supabase Auth** — troque a senha do usuário **admin** do front e do usuário de treinamento. Apague qualquer usuário de teste criado pelo fornecedor.", "detail": "Anote as novas senhas em cofre do <CLIENTE> (ex: Bitwarden, 1Password)." },
+            { "n": 3, "action": "**Azure OpenAI** — no portal Azure, regenere a chave do recurso. Atualize a credencial no n8n e re-rode 1 chamada de validação.", "expected": "Chat e validação do wizard continuam funcionando com a chave nova." },
+            { "n": 4, "action": "**Google Gemini** — gere uma nova API key em ai.google.dev e atualize a credencial Gemini no n8n.", "detail": "Dispare o workflow RAG no modo `rag_only` para confirmar." },
+            { "n": 5, "action": "**OpenRouter** — gere nova key em openrouter.ai e substitua no n8n.", "expected": "Ingestão RAG completa sem erro." },
+            { "n": 6, "action": "**Google Drive (OAuth2)** — reautorize a credencial usando uma conta de serviço do <CLIENTE>, não a conta do fornecedor.", "detail": "Garanta que a conta tem acesso de leitura à pasta de documentos." },
+            { "n": 7, "action": "**Cloudfy** — remova qualquer usuário do fornecedor do workspace do <CLIENTE>.", "expected": "Lista de usuários do workspace contém apenas pessoas do <CLIENTE>." }
+          ],
+          "notes": [
+            { "type": "danger", "title": "Faça uma chave por vez", "body": "Rotacionar tudo de uma vez torna difícil saber onde falhou se algo quebrar. Faça uma credencial, valide com uma execução real, depois passe para a próxima." },
+            { "type": "checklist", "title": "Confirmação final de rotação", "items": [
+              "Service role do Supabase substituída e validada",
+              "Senhas dos usuários administrativos trocadas",
+              "Chave Azure OpenAI regenerada",
+              "Chave Google Gemini regenerada",
+              "Chave OpenRouter regenerada",
+              "OAuth do Google Drive reautorizado por conta do <CLIENTE>",
+              "Usuários do fornecedor removidos do Cloudfy"
+            ]}
+          ]
+        },
+        {
+          "heading": "Contatos e suporte",
+          "intro": "Preencha esta tabela durante o handover e mantenha-a atualizada. É o ponto de contato oficial para qualquer ocorrência nas semanas seguintes ao aceite.",
+          "table": {
+            "caption": "Matriz de contatos",
+            "headers": ["Papel", "Nome", "E-mail", "Telefone", "Janela"],
+            "rows": [
+              ["Responsável técnico — <CLIENTE>", "", "<nome>@<seu-dominio>.com.br", "", "Comercial"],
+              ["Responsável operacional — <CLIENTE>", "", "<nome>@<seu-dominio>.com.br", "", "Comercial"],
+              ["Backup técnico — <CLIENTE>", "", "<nome>@<seu-dominio>.com.br", "", "Plantão"],
+              ["Suporte Cloudfy", "", "suporte@cloudfy.space", "", "Ver SLA contratado"],
+              ["Suporte Supabase (cloud)", "", "support@supabase.io", "", "Ver plano contratado"],
+              ["Suporte Azure", "", "Ver portal.azure.com", "", "Ver SLA contratado"],
+              ["Fornecedor — período de garantia", "", "<contato>@fornecedor.com.br", "", "<N> dias após aceite"]
+            ]
+          },
+          "notes": [
+            { "type": "info", "title": "Período de garantia", "body": "Durante o período de garantia acordado em contrato, o fornecedor responde por incidentes de plataforma — **não** por uso operacional incorreto. Use o capítulo 7 (Troubleshooting) antes de acionar suporte externo." }
+          ]
+        },
+        {
+          "heading": "Próximos passos (30 / 60 / 90 dias)",
+          "intro": "Após o aceite, recomenda-se uma cadência leve de revisão para garantir que a plataforma evolua junto com o negócio.",
+          "notes": [
+            { "type": "checklist", "title": "Primeiros 30 dias", "items": [
+              "Revisar diariamente as execuções do n8n (procurar workflows em vermelho)",
+              "Conferir 1× por semana se o RAG indexou os documentos novos",
+              "Coletar feedback dos 3 primeiros vendedores que usaram o wizard",
+              "Trocar a senha de todos os usuários criados pelo fornecedor (caso ainda existam)"
+            ]},
+            { "type": "checklist", "title": "Dias 30-60", "items": [
+              "Auditar a tabela de orçamentos: status distribuídos, tempo médio até `completed`",
+              "Auditar a base de clientes: duplicados? CNPJ inválido?",
+              "Atualizar os documentos do RAG (manual, regras comerciais) e reindexar",
+              "Revisar policies de RLS: algum papel pode ser endurecido?"
+            ]},
+            { "type": "checklist", "title": "Dias 60-90", "items": [
+              "Avaliar custo Azure OpenAI por orçamento gerado — ajustar prompt/modelo se preciso",
+              "Verificar backups do Supabase (restauração de teste em ambiente isolado)",
+              "Treinar 1 pessoa adicional do <CLIENTE> na sessão técnica (redundância)",
+              "Discutir backlog de melhorias com TI e comercial"
+            ]},
+            { "type": "tip", "title": "Versionar o playbook", "body": "Conforme o <CLIENTE> evoluir a plataforma (novos workflows, novas tabelas, novos prompts), atualize este playbook. A versão impressa do dia do aceite vira referência histórica, não documentação viva." }
+          ]
+        },
+        {
+          "heading": "Assinaturas",
+          "table": {
+            "headers": ["Papel", "Nome", "Data", "Assinatura"],
+            "rows": [
+              ["Responsável técnico — <CLIENTE>", "", "", ""],
+              ["Responsável operacional — <CLIENTE>", "", "", ""],
+              ["Responsável técnico — Fornecedor", "", "", ""]
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
