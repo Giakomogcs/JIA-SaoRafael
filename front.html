@@ -11013,32 +11013,42 @@
           return;
         }
 
-        // Strategy 1: open a blank popup and write the HTML directly via
-        // document.write. This avoids the well-known issues with
-        // window.open(blob:...) where the popup occasionally renders as
-        // about:blank because the load event fired before the listener was
-        // attached, or because of cross-origin restrictions on blob: URLs.
-        let popup = null;
+        // Strategy 1: open the HTML through a Blob URL. This is the most
+        // reliable cross-browser way to render a full document in a new tab.
+        // window.open("", "_blank") + document.write frequently renders as a
+        // blank about:blank page in modern Chrome/Edge (especially under Live
+        // Server) because the synthetic about:blank document is replaced
+        // asynchronously and the write is discarded. A real blob: URL is
+        // loaded by the browser's normal navigation pipeline, so it always
+        // paints.
+        let blobUrl = null;
         try {
-          popup = window.open("", "_blank");
+          const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          blobUrl = URL.createObjectURL(blob);
         } catch (e) {
-          popup = null;
+          blobUrl = null;
         }
-        if (popup && popup.document) {
+        if (blobUrl) {
+          let popup = null;
           try {
-            popup.document.open();
-            popup.document.write(html);
-            popup.document.close();
+            popup = window.open(blobUrl, "_blank");
+          } catch (e) {
+            popup = null;
+          }
+          if (popup) {
             try { popup.focus(); } catch (e) {}
+            // Revoke the URL after the new tab has had time to load it.
+            setTimeout(() => {
+              try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+            }, 60000);
             addChatMessage(
-              `📄 Versão para impressão/PDF aberta em nova janela. Use o botão "🖨️ Imprimir / Salvar como PDF" no topo ou Ctrl+P.`,
+              `📄 Versão para impressão/PDF aberta em nova aba. Use o botão "🖨️ Imprimir / Salvar como PDF" no topo ou Ctrl+P.`,
               "system",
             );
             return;
-          } catch (e) {
-            console.error("[PDF] Falha ao escrever no popup:", e);
-            try { popup.close(); } catch (_) {}
           }
+          // Popup was blocked — revoke and fall through to the inline overlay.
+          try { URL.revokeObjectURL(blobUrl); } catch (e) {}
         }
 
         // Strategy 2: fallback — render inline in an overlay so print works
