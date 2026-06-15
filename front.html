@@ -4848,11 +4848,23 @@
                 });
                 const totalRec = rows.reduce((s, r) => s + r.recomendado, 0);
                 const totalMin = rows.reduce(
-                  (s, _r, i) => s + (rcRecommendLuminarias(compsLum[i], (cfgAllLum[compsLum[i].name] || {}).categoria_produto, (cfgAllLum[compsLum[i].name] || {}).temperatura_setpoint).min || 0),
+                  (s, _r, i) =>
+                    s +
+                    (rcRecommendLuminarias(
+                      compsLum[i],
+                      (cfgAllLum[compsLum[i].name] || {}).categoria_produto,
+                      (cfgAllLum[compsLum[i].name] || {}).temperatura_setpoint,
+                    ).min || 0),
                   0,
                 );
                 const totalMax = rows.reduce(
-                  (s, _r, i) => s + (rcRecommendLuminarias(compsLum[i], (cfgAllLum[compsLum[i].name] || {}).categoria_produto, (cfgAllLum[compsLum[i].name] || {}).temperatura_setpoint).max || 0),
+                  (s, _r, i) =>
+                    s +
+                    (rcRecommendLuminarias(
+                      compsLum[i],
+                      (cfgAllLum[compsLum[i].name] || {}).categoria_produto,
+                      (cfgAllLum[compsLum[i].name] || {}).temperatura_setpoint,
+                    ).max || 0),
                   0,
                 );
                 lumTxt = `\n\nLUMINÁRIAS — cálculo determinístico oficial (NÃO RECALCULE, NÃO INVENTE OUTRO NÚMERO):\nFórmula: ceil(área × alvo_lux ÷ 4500 lm/luminária). Alvos: 250 lux farmacêutico/laticínios/carne; 200 lux freezer; 175 lux resfriado; 150 lux climatizada.\nPor compartimento: ${JSON.stringify(rows)}\nTOTAL recomendado: ${totalRec} · faixa aceitável: ${totalMin}-${totalMax}.\nREGRA: se 'qtd_luminarias' atual está entre ${totalMin} e ${totalMax}, NÃO sugerir mudança. Se sugerir, value DEVE ser exatamente ${totalRec}.`;
@@ -5008,7 +5020,9 @@
           if (stepNum === 3 && Array.isArray(suggestions)) {
             try {
               const rcSan =
-                typeof runRealityCheck === "function" ? runRealityCheck() : null;
+                typeof runRealityCheck === "function"
+                  ? runRealityCheck()
+                  : null;
               const compsSan =
                 rcSan?.derived?.compartments ||
                 (typeof rcComputeCompartments === "function" &&
@@ -5051,11 +5065,7 @@
                   // Se a IA propôs um número fora da faixa determinística,
                   // corrigir para o recomendado oficial em vez de descartar
                   // (assim o usuário ainda recebe um "Aplicar correção" útil).
-                  if (
-                    !isFinite(aiVal) ||
-                    aiVal < rcMin ||
-                    aiVal > rcMax
-                  ) {
+                  if (!isFinite(aiVal) || aiVal < rcMin || aiVal > rcMax) {
                     s.value = String(rcRec);
                     s.reason = `Recomendação oficial do Reality Check: ${rcRec} luminárias para ${rcArea.toFixed(1)}m² (faixa aceitável ${rcMin}-${rcMax}). Cálculo: área × alvo_lux ÷ 4500 lm por luminária.`;
                     if (Array.isArray(s.alternatives)) s.alternatives = [];
@@ -5728,20 +5738,34 @@
             : null;
         const label =
           classif.label ||
-          ({
+          {
             simple: "Projeto Simples",
             standard: "Projeto Padrão",
             complex: "Projeto Complexo",
             highly_complex: "Projeto Altamente Complexo",
           }[level] ||
-            "Classificação");
-        const palette =
-          {
-            simple: { bg: "#dcfce7", fg: "#166534", bar: "#22c55e", icon: "🟢" },
-            standard: { bg: "#dbeafe", fg: "#1e40af", bar: "#3b82f6", icon: "🔵" },
-            complex: { bg: "#fef3c7", fg: "#92400e", bar: "#f97316", icon: "🟠" },
-            highly_complex: { bg: "#fee2e2", fg: "#991b1b", bar: "#ef4444", icon: "🔴" },
-          }[level] || { bg: "#e5e7eb", fg: "#374151", bar: "#6b7280", icon: "⚪" };
+          "Classificação";
+        const palette = {
+          simple: { bg: "#dcfce7", fg: "#166534", bar: "#22c55e", icon: "🟢" },
+          standard: {
+            bg: "#dbeafe",
+            fg: "#1e40af",
+            bar: "#3b82f6",
+            icon: "🔵",
+          },
+          complex: { bg: "#fef3c7", fg: "#92400e", bar: "#f97316", icon: "🟠" },
+          highly_complex: {
+            bg: "#fee2e2",
+            fg: "#991b1b",
+            bar: "#ef4444",
+            icon: "🔴",
+          },
+        }[level] || {
+          bg: "#e5e7eb",
+          fg: "#374151",
+          bar: "#6b7280",
+          icon: "⚪",
+        };
 
         const factors = Array.isArray(classif.factors) ? classif.factors : [];
         const reqReview = !!classif.engineering_review_required;
@@ -6585,8 +6609,7 @@
         let editingBanner = "";
         if (formData && formData._editing_submission_id) {
           const proto =
-            formData._editing_protocol ||
-            "#" + formData._editing_submission_id;
+            formData._editing_protocol || "#" + formData._editing_submission_id;
           editingBanner =
             `<div id="editingModeBanner" style="background:linear-gradient(90deg,#d1fae5,#a7f3d0);border:1px solid #10b981;border-left:4px solid #10b981;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">` +
             `<div style="font-size:12.5px;color:#065f46;line-height:1.4;">` +
@@ -6598,7 +6621,9 @@
             `</div>`;
         }
 
-        let html = editingBanner + `<div class="step-panel active">
+        let html =
+          editingBanner +
+          `<div class="step-panel active">
         <div class="step-card">
           <div class="step-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
@@ -6713,7 +6738,8 @@
         const errors = validationErrors[stepKey] || {};
         const fieldErrors = errors[fullKey] || [];
         const hasError = fieldErrors.length > 0;
-        const isFullWidth = field.type === "textarea" || field.type === "local-instalacao-box";
+        const isFullWidth =
+          field.type === "textarea" || field.type === "local-instalacao-box";
 
         let html = `<div class="form-group${isFullWidth ? " full-width" : ""}">`;
         html += `<label>
@@ -6837,22 +6863,34 @@
 
           case "local-instalacao-box":
             const liVal = value || "";
-            const liDiferente = formData[stepKey].local_instalacao_diferente || (liVal && liVal !== ((formData[stepKey].cidade || "") + "/" + (formData[stepKey].estado || "")) ? "sim" : "nao");
-            const liUfVal = liVal && liVal.includes("/") ? liVal.split("/").pop().trim() : "";
-            const liCidVal = liVal && liVal.includes("/") ? liVal.split("/")[0].trim() : "";
+            const liDiferente =
+              formData[stepKey].local_instalacao_diferente ||
+              (liVal &&
+              liVal !==
+                (formData[stepKey].cidade || "") +
+                  "/" +
+                  (formData[stepKey].estado || "")
+                ? "sim"
+                : "nao");
+            const liUfVal =
+              liVal && liVal.includes("/") ? liVal.split("/").pop().trim() : "";
+            const liCidVal =
+              liVal && liVal.includes("/") ? liVal.split("/")[0].trim() : "";
             const cidadeAtual = formData[stepKey].cidade || "";
             const estadoAtual = formData[stepKey].estado || "";
             const enderecoAtual = formData[stepKey].endereco_entrega || "";
             const numeroAtual = formData[stepKey].endereco_numero || "";
-            const complementoAtual = formData[stepKey].endereco_complemento || "";
+            const complementoAtual =
+              formData[stepKey].endereco_complemento || "";
             const cepAtual = formData[stepKey].cep || "";
-            const enderecoResumo = [
-              enderecoAtual,
-              numeroAtual ? "nº " + numeroAtual : "",
-              complementoAtual ? "(" + complementoAtual + ")" : "",
-            ]
-              .filter(Boolean)
-              .join(" ") || "(endereço não preenchido)";
+            const enderecoResumo =
+              [
+                enderecoAtual,
+                numeroAtual ? "nº " + numeroAtual : "",
+                complementoAtual ? "(" + complementoAtual + ")" : "",
+              ]
+                .filter(Boolean)
+                .join(" ") || "(endereço não preenchido)";
             html += `<div class="local-instalacao-box" ${dataAttr} style="border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;background:var(--bg-tertiary,rgba(0,0,0,0.02));">
               <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text-primary);">
                 <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--color-primary);"></i>
@@ -7347,7 +7385,12 @@
           input.addEventListener("change", persist);
           input.addEventListener("blur", () => {
             if (input.value.replace(/\D/g, "").length === 8)
-              doCepLookup(input.value, stepKey, panel, /*forInstalacao=*/ false);
+              doCepLookup(
+                input.value,
+                stepKey,
+                panel,
+                /*forInstalacao=*/ false,
+              );
           });
           btn.addEventListener("click", () =>
             doCepLookup(input.value, stepKey, panel, /*forInstalacao=*/ false),
@@ -7366,7 +7409,9 @@
           const cidadeSel = box.querySelector('[data-li-field="cidade"]');
           const enderecoInput = box.querySelector('[data-li-field="endereco"]');
           const numeroInput = box.querySelector('[data-li-field="numero"]');
-          const complementoInput = box.querySelector('[data-li-field="complemento"]');
+          const complementoInput = box.querySelector(
+            '[data-li-field="complemento"]',
+          );
           const cepContainer = box.querySelector(".cep-container");
           const cepInput = cepContainer.querySelector(".cep-input");
           const cepBtn = cepContainer.querySelector(".cep-search-btn");
@@ -7421,7 +7466,8 @@
           }
           if (complementoInput) {
             complementoInput.addEventListener("input", () => {
-              formData[stepKey].local_instalacao_complemento = complementoInput.value;
+              formData[stepKey].local_instalacao_complemento =
+                complementoInput.value;
               saveToStorage();
             });
           }
@@ -7483,10 +7529,20 @@
           cepInput.addEventListener("change", persistLiCep);
           cepInput.addEventListener("blur", () => {
             if (cepInput.value.replace(/\D/g, "").length === 8)
-              doCepLookup(cepInput.value, stepKey, panel, /*forInstalacao=*/ true);
+              doCepLookup(
+                cepInput.value,
+                stepKey,
+                panel,
+                /*forInstalacao=*/ true,
+              );
           });
           cepBtn.addEventListener("click", () =>
-            doCepLookup(cepInput.value, stepKey, panel, /*forInstalacao=*/ true),
+            doCepLookup(
+              cepInput.value,
+              stepKey,
+              panel,
+              /*forInstalacao=*/ true,
+            ),
           );
 
           // Re-sync whenever cidade/estado above change (for "Não" mode)
@@ -7498,7 +7554,10 @@
           );
           // Live-update the "mesmo endereço" resumo when address-above changes
           const refreshResumo = () => {
-            if ((formData[stepKey].local_instalacao_diferente || "nao") !== "nao") return;
+            if (
+              (formData[stepKey].local_instalacao_diferente || "nao") !== "nao"
+            )
+              return;
             const e = formData[stepKey].endereco_entrega || "";
             const n = formData[stepKey].endereco_numero || "";
             const cp = formData[stepKey].endereco_complemento || "";
@@ -7512,25 +7571,33 @@
             const linha2 =
               (ci && uf ? ci + "/" + uf : "(cidade/UF não preenchidos)") +
               (cep ? " · CEP " + cep : "");
-            resumoMesmo.innerHTML =
-              `ℹ️ A instalação será no endereço informado acima:<br><strong>${escapeHtml(linha1)}</strong><br>${escapeHtml(linha2)}`;
+            resumoMesmo.innerHTML = `ℹ️ A instalação será no endereço informado acima:<br><strong>${escapeHtml(linha1)}</strong><br>${escapeHtml(linha2)}`;
           };
-          ["endereco_entrega", "endereco_numero", "endereco_complemento", "cep"].forEach(
-            (fn) => {
-              const el = panel.querySelector(`[data-field-name="${fn}"]`);
-              if (el) el.addEventListener("input", refreshResumo);
-            },
-          );
+          [
+            "endereco_entrega",
+            "endereco_numero",
+            "endereco_complemento",
+            "cep",
+          ].forEach((fn) => {
+            const el = panel.querySelector(`[data-field-name="${fn}"]`);
+            if (el) el.addEventListener("input", refreshResumo);
+          });
           if (cidadeAboveEl)
             cidadeAboveEl.addEventListener("change", () => {
-              if ((formData[stepKey].local_instalacao_diferente || "nao") === "nao") {
+              if (
+                (formData[stepKey].local_instalacao_diferente || "nao") ===
+                "nao"
+              ) {
                 syncMunicipio();
                 renderCurrentStep();
               }
             });
           if (estadoAboveEl)
             estadoAboveEl.addEventListener("change", () => {
-              if ((formData[stepKey].local_instalacao_diferente || "nao") === "nao") {
+              if (
+                (formData[stepKey].local_instalacao_diferente || "nao") ===
+                "nao"
+              ) {
                 syncMunicipio();
               }
             });
@@ -8665,7 +8732,9 @@
             if (uf) formData[stepKey].estado = uf;
             if (cidade) formData[stepKey].cidade = cidade;
             // Keep local_instalacao_municipio in sync if user chose "mesmo endereço"
-            if ((formData[stepKey].local_instalacao_diferente || "nao") === "nao") {
+            if (
+              (formData[stepKey].local_instalacao_diferente || "nao") === "nao"
+            ) {
               formData[stepKey].local_instalacao_municipio =
                 cidade && uf ? `${cidade}/${uf}` : "";
             }
@@ -8685,7 +8754,8 @@
       // ============================================
       // CPF / CNPJ Mask & Validation
       // ============================================
-      function maskCpfCnpj(value) {        let digits = (value || "").replace(/\D/g, "").slice(0, 14);
+      function maskCpfCnpj(value) {
+        let digits = (value || "").replace(/\D/g, "").slice(0, 14);
         if (digits.length <= 11) {
           // CPF: 000.000.000-00
           digits = digits.slice(0, 11);
@@ -11036,10 +11106,14 @@
             popup = null;
           }
           if (popup) {
-            try { popup.focus(); } catch (e) {}
+            try {
+              popup.focus();
+            } catch (e) {}
             // Revoke the URL after the new tab has had time to load it.
             setTimeout(() => {
-              try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+              try {
+                URL.revokeObjectURL(blobUrl);
+              } catch (e) {}
             }, 60000);
             addChatMessage(
               `📄 Versão para impressão/PDF aberta em nova aba. Use o botão "🖨️ Imprimir / Salvar como PDF" no topo ou Ctrl+P.`,
@@ -11048,7 +11122,9 @@
             return;
           }
           // Popup was blocked — revoke and fall through to the inline overlay.
-          try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+          try {
+            URL.revokeObjectURL(blobUrl);
+          } catch (e) {}
         }
 
         // Strategy 2: fallback — render inline in an overlay so print works
@@ -11061,7 +11137,8 @@
           "position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999;background:#fff;overflow:auto;";
         const iframe = document.createElement("iframe");
         iframe.setAttribute("title", "Visualização para PDF");
-        iframe.style.cssText = "width:100%;height:100%;border:none;display:block;";
+        iframe.style.cssText =
+          "width:100%;height:100%;border:none;display:block;";
         overlay.appendChild(iframe);
 
         const closeBtn = document.createElement("button");
@@ -11447,7 +11524,10 @@
         const proto = sub.protocol || "#" + sub.id;
         // Aviso se já existe um rascunho/edição em andamento
         const hasDraft = Object.keys(formData || {}).some(
-          (k) => /^step\d+$/.test(k) && formData[k] && Object.keys(formData[k]).length > 0,
+          (k) =>
+            /^step\d+$/.test(k) &&
+            formData[k] &&
+            Object.keys(formData[k]).length > 0,
         );
         const isAlreadyEditing = !!formData._editing_submission_id;
         let warn =
@@ -11461,8 +11541,7 @@
             `(${formData._editing_protocol || "#" + formData._editing_submission_id}). ` +
             `Esta ação substituirá os dados atuais.`;
         } else if (hasDraft) {
-          warn +=
-            `\n\n⚠️ Há um formulário em andamento que será sobrescrito.`;
+          warn += `\n\n⚠️ Há um formulário em andamento que será sobrescrito.`;
         }
         if (
           !(await uiConfirm(warn, {
@@ -11526,7 +11605,11 @@
                       mem[`${fname}[${idx}].${sub}`] = String(subVal);
                     });
                   });
-                } else if (fval != null && fval !== "" && typeof fval !== "object") {
+                } else if (
+                  fval != null &&
+                  fval !== "" &&
+                  typeof fval !== "object"
+                ) {
                   mem[fname] = String(fval);
                 }
               });
@@ -11538,7 +11621,9 @@
           } catch (e) {}
           lastStepEvaluated = false;
           lastStepEvaluating = false;
-          try { localStorage.removeItem(STORAGE_VALIDATIONS_KEY); } catch (e) {}
+          try {
+            localStorage.removeItem(STORAGE_VALIDATIONS_KEY);
+          } catch (e) {}
           currentStep = 1;
           saveToStorage();
           renderCurrentStep();
@@ -11568,8 +11653,7 @@
       async function cancelEditing() {
         if (!formData._editing_submission_id) return;
         const proto =
-          formData._editing_protocol ||
-          "#" + formData._editing_submission_id;
+          formData._editing_protocol || "#" + formData._editing_submission_id;
         if (
           !(await uiConfirm(
             `Cancelar edição de "${proto}"?\n\n` +
@@ -20149,12 +20233,12 @@
         const overlay = document.getElementById("compConfigOverlay");
         if (!overlay) {
           // Modal not mounted yet — retry once on next frame.
-          requestAnimationFrame(() =>
-            rcFocusFieldInCompartmentModal(field),
-          );
+          requestAnimationFrame(() => rcFocusFieldInCompartmentModal(field));
           return;
         }
-        const el = overlay.querySelector("#" + elId) || overlay.querySelector(`[name="${elId}"]`);
+        const el =
+          overlay.querySelector("#" + elId) ||
+          overlay.querySelector(`[name="${elId}"]`);
         if (!el) return;
         // Find a sensible wrapping container to flash so labels are visible too
         const wrap =
@@ -20461,8 +20545,7 @@
             label: "Categoria/finalidade do produto",
             elId: "cfgCategoria",
             parse: (v) => (v || "").trim(),
-            check: (s) =>
-              !s ? "Escolha o tipo de produto armazenado." : null,
+            check: (s) => (!s ? "Escolha o tipo de produto armazenado." : null),
           },
           {
             key: "frequencia_aberturas",
@@ -20470,9 +20553,7 @@
             elId: "cfgFreq",
             parse: (v) => (v || "").trim(),
             check: (s) =>
-              !s
-                ? "Selecione a frequência (baixa/média/alta)."
-                : null,
+              !s ? "Selecione a frequência (baixa/média/alta)." : null,
           },
           {
             key: "qtd_luminarias",
@@ -21064,7 +21145,10 @@
         // Toda a validação dos campos obrigatórios é feita pela schema
         // declarada dentro de openCompartmentConfig. Aqui só pedimos ao
         // overlay para revalidar — ele já pinta erros inline + banner.
-        if (overlay && typeof overlay._compModalRefreshValidation === "function") {
+        if (
+          overlay &&
+          typeof overlay._compModalRefreshValidation === "function"
+        ) {
           const ok = overlay._compModalRefreshValidation();
           if (!ok) {
             // Foca no primeiro campo inválido e mostra um toast curto
