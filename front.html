@@ -3829,8 +3829,8 @@
               max: 50,
               step: 1,
               default: 0,
-              readOnly: true,
-              hint: "Soma automática das luminárias configuradas em cada compartimento (botão ⚙️ Configurar).",
+              readOnly: false,
+              hint: "Calculada automaticamente pela soma dos compartimentos (botão ⚙️ Configurar). Você pode digitar um valor manual — ele será distribuído proporcionalmente entre os compartimentos.",
               crossValidation: "luminarias_vs_area",
             },
           },
@@ -7690,9 +7690,22 @@
               saveToStorage();
               return;
             }
-            lumInput.readOnly = true;
-            lumInput.style.cursor = "not-allowed";
-            lumInput.style.opacity = "0.85";
+            // Campo editável: usuário pode digitar um valor manual.
+            lumInput.readOnly = false;
+            lumInput.style.cursor = "text";
+            lumInput.style.opacity = "1";
+            // Se o usuário definiu um valor manual, respeitar e não sobrescrever
+            // com o recálculo automático.
+            if (formData.step3.__qtd_luminarias_manual) {
+              const manual = parseInt(formData.step3.qtd_luminarias) || 0;
+              lumInput.value = String(manual);
+              const hintManualEl =
+                lumInput.parentElement?.querySelector(".field-hint");
+              if (hintManualEl) {
+                hintManualEl.textContent = `Total manual: ${manual} luminária(s), distribuído entre os compartimentos. Limpe o campo para voltar ao cálculo automático.`;
+              }
+              return;
+            }
             // Sum from compartment configs
             const snap = getChamberSnapshot();
             const comps =
@@ -7753,6 +7766,97 @@
           );
           if (ilumSelect) {
             ilumSelect.addEventListener("change", syncLuminariasTotal);
+          }
+
+          // Permitir entrada manual: ao digitar um total, distribuir entre os
+          // compartimentos proporcionalmente. Campo vazio → volta ao automático.
+          const lumInputEl = panel.querySelector(
+            '[data-field-name="qtd_luminarias"]',
+          );
+          if (lumInputEl) {
+            lumInputEl.addEventListener("change", (e) => {
+              const raw = e.target.value.trim();
+              if (raw === "") {
+                // Voltar ao cálculo automático
+                formData.step3.__qtd_luminarias_manual = false;
+                e.target.style.borderColor = "";
+                const hintReset =
+                  e.target.parentElement?.querySelector(".field-hint");
+                if (hintReset) hintReset.style.color = "";
+                syncLuminariasTotal();
+                if (typeof refreshChamberVisualizer === "function")
+                  refreshChamberVisualizer();
+                if (typeof refreshRcSidebar === "function") refreshRcSidebar();
+                return;
+              }
+              const target = Math.max(0, parseInt(raw) || 0);
+              formData.step3.__qtd_luminarias_manual = true;
+              if (typeof distributeLuminariasTotal === "function") {
+                distributeLuminariasTotal(target);
+              }
+              formData.step3.qtd_luminarias = String(target);
+              e.target.value = String(target);
+              const hintEl =
+                e.target.parentElement?.querySelector(".field-hint");
+              // Comparar com a recomendação determinística (área × lux) e
+              // informar imediatamente se o valor manual estiver fora da faixa.
+              let rec = null;
+              try {
+                const snapM = getChamberSnapshot();
+                const compsM =
+                  typeof rcComputeCompartments === "function"
+                    ? rcComputeCompartments(snapM)
+                    : [];
+                const cfgM =
+                  typeof rcGetCompartmentsConfig === "function"
+                    ? rcGetCompartmentsConfig()
+                    : {};
+                if (compsM.length && typeof rcRecommendLuminarias === "function") {
+                  let tRec = 0,
+                    tMin = 0,
+                    tMax = 0,
+                    tArea = 0;
+                  compsM.forEach((c) => {
+                    const cf = cfgM[c.name] || {};
+                    const r = rcRecommendLuminarias(
+                      c,
+                      cf.categoria_produto,
+                      cf.temperatura_setpoint,
+                    );
+                    tRec += r.recommended || 0;
+                    tMin += r.min || 0;
+                    tMax += r.max || 0;
+                    tArea += c.area || 0;
+                  });
+                  rec = { tRec, tMin, tMax, tArea };
+                }
+              } catch (err) {}
+              if (hintEl) {
+                if (rec && rec.tRec > 0) {
+                  if (target < rec.tMin) {
+                    hintEl.innerHTML = `⚠️ <b>${target}</b> é pouco para ${rec.tArea.toFixed(1)}m². Recomendado: <b>${rec.tRec}</b> (mín ${rec.tMin}). O agente irá sinalizar.`;
+                    hintEl.style.color = "var(--color-error)";
+                    e.target.style.borderColor = "var(--color-error)";
+                  } else if (target > rec.tMax) {
+                    hintEl.innerHTML = `⚠️ <b>${target}</b> é excessivo para ${rec.tArea.toFixed(1)}m². Recomendado: <b>${rec.tRec}</b> (máx ${rec.tMax}). O agente irá sinalizar.`;
+                    hintEl.style.color = "var(--color-error)";
+                    e.target.style.borderColor = "var(--color-error)";
+                  } else {
+                    hintEl.innerHTML = `✅ <b>${target}</b> dentro da faixa técnica (${rec.tMin}–${rec.tMax}, ideal ${rec.tRec}). Distribuído entre os compartimentos.`;
+                    hintEl.style.color = "var(--color-success,#22c55e)";
+                    e.target.style.borderColor = "var(--color-success,#22c55e)";
+                  }
+                } else {
+                  hintEl.textContent = `Total manual: ${target} luminária(s), distribuído entre os compartimentos. Limpe o campo para voltar ao cálculo automático.`;
+                  hintEl.style.color = "";
+                  e.target.style.borderColor = "";
+                }
+              }
+              saveToStorage();
+              if (typeof refreshChamberVisualizer === "function")
+                refreshChamberVisualizer();
+              if (typeof refreshRcSidebar === "function") refreshRcSidebar();
+            });
           }
 
           // Run sync on render
@@ -16448,6 +16552,56 @@
         if (t != null && t < 8) return 175; // resfriado
         return 150; // climatizada / ambiente
       }
+      // Distribui um total de luminárias entre os compartimentos,
+      // proporcionalmente à recomendação por área/temperatura de cada um.
+      // Usado quando o usuário digita um total manual na Etapa 3.
+      function distributeLuminariasTotal(target) {
+        target = Math.max(0, parseInt(target) || 0);
+        try {
+          const snap =
+            typeof getChamberSnapshot === "function"
+              ? getChamberSnapshot()
+              : null;
+          const comps =
+            snap && typeof rcComputeCompartments === "function"
+              ? rcComputeCompartments(snap)
+              : [];
+          const cfgAll =
+            typeof rcGetCompartmentsConfig === "function"
+              ? rcGetCompartmentsConfig()
+              : {};
+          if (comps.length === 0) return;
+          // Pesos = recomendação por compartimento (proporcional à área/temp)
+          const weights = comps.map((c) => {
+            const cf = cfgAll[c.name] || {};
+            const rec = rcRecommendLuminarias(
+              c,
+              cf.categoria_produto,
+              cf.temperatura_setpoint,
+            );
+            return Math.max(1, rec.recommended || 1);
+          });
+          const sumW = weights.reduce((a, b) => a + b, 0) || 1;
+          const base = weights.map((w) => Math.floor((target * w) / sumW));
+          let assigned = base.reduce((a, b) => a + b, 0);
+          const remainders = weights
+            .map((w, i) => ({ i, frac: (target * w) / sumW - base[i] }))
+            .sort((a, b) => b.frac - a.frac);
+          let k = 0;
+          while (assigned < target && k < remainders.length) {
+            base[remainders[k].i] += 1;
+            assigned += 1;
+            k += 1;
+          }
+          comps.forEach((c, i) => {
+            cfgAll[c.name] = Object.assign({}, cfgAll[c.name] || {}, {
+              qtd_luminarias: base[i],
+            });
+          });
+          if (typeof rcSaveCompartmentsConfig === "function")
+            rcSaveCompartmentsConfig(cfgAll);
+        } catch (e) {}
+      }
       function rcRecommendLuminarias(compartment, cat, t) {
         const LUMENS_POR_LUMINARIA = 4500; // LED 36W IP65/67 std
         const targetLux = rcLuminariaTargetLux(t, cat);
@@ -16599,22 +16753,34 @@
         if (!compartments || !compartments.length) return issues;
         let totalLum = 0,
           totalRec = 0;
+        let autoFilled = false;
+        const cfgAll = rcGetCompartmentsConfig();
         compartments.forEach((c) => {
           const cf = c.config || {};
           const cat = cf.categoria_produto;
           const t = cf.temperatura_setpoint;
           const rec = rcRecommendLuminarias(c, cat, t);
-          const actual = cf.qtd_luminarias != null ? cf.qtd_luminarias : null;
+          let actual = cf.qtd_luminarias != null ? cf.qtd_luminarias : null;
           totalRec += rec.recommended;
           if (actual == null) {
+            // Auto-preenche com a quantidade recomendada (área × alvo_lux ÷
+            // lúmens/luminária) em vez de bloquear o usuário. O número já é
+            // dimensionado ao tamanho do compartimento, então "faz sentido".
+            actual = rec.recommended;
+            cf.qtd_luminarias = actual;
+            cfgAll[c.name] = Object.assign({}, cfgAll[c.name] || {}, {
+              qtd_luminarias: actual,
+            });
+            autoFilled = true;
             issues.push({
-              level: "error",
+              level: "suggestion",
               category: "luminarias",
               field: "qtd_luminarias",
-              message: `${c.name}: configure quantidade de luminárias. Sugerido: ${rec.recommended} (área ${c.area}m² · alvo ${rec.targetLux} lux).`,
+              message: `${c.name}: ${actual} luminária(s) preenchidas automaticamente para ${c.area}m² (alvo ${rec.targetLux} lux). Ajuste se necessário.`,
               compartment: c.name,
               recommended: rec.recommended,
             });
+            totalLum += actual;
             return;
           }
           totalLum += actual;
@@ -16650,11 +16816,20 @@
             });
           }
         });
+        // Persiste os auto-preenchimentos e atualiza o total da Etapa 3.
+        if (autoFilled) {
+          rcSaveCompartmentsConfig(cfgAll);
+        }
         // Sync against global qtd_luminarias if set
         const sumActual = compartments.reduce(
           (s, c) => s + (c.config?.qtd_luminarias || 0),
           0,
         );
+        if (autoFilled && sumActual > 0) {
+          if (!formData.step3) formData.step3 = {};
+          formData.step3.qtd_luminarias = String(sumActual);
+          saveToStorage();
+        }
         const globalQtd = parseInt(formData.step3?.qtd_luminarias);
         if (
           isFinite(globalQtd) &&

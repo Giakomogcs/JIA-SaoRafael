@@ -65,6 +65,11 @@ BEGIN
   END IF;
 
   -- Insert into auth.users (Supabase internal)
+  -- NOTE: token columns (confirmation_token, recovery_token, email_change*,
+  -- phone_change*, reauthentication_token) MUST be '' (empty string), never NULL.
+  -- GoTrue scans these as Go strings on login; a NULL value raises
+  -- "converting NULL to string" → HTTP 500 with no body, which supabase-js
+  -- surfaces as an empty error object `{}`.
   INSERT INTO auth.users (
     instance_id,
     id,
@@ -73,9 +78,18 @@ BEGIN
     email,
     encrypted_password,
     email_confirmed_at,
+    raw_app_meta_data,
     raw_user_meta_data,
     created_at,
-    updated_at
+    updated_at,
+    confirmation_token,
+    recovery_token,
+    email_change,
+    email_change_token_new,
+    email_change_token_current,
+    phone_change,
+    phone_change_token,
+    reauthentication_token
   ) VALUES (
     '00000000-0000-0000-0000-000000000000',
     gen_random_uuid(),
@@ -85,12 +99,24 @@ BEGIN
     crypt(p_password, gen_salt('bf')),
     NOW(),
     jsonb_build_object(
+      'provider', 'email',
+      'providers', jsonb_build_array('email')
+    ),
+    jsonb_build_object(
       'company_name', 'saorafael',
       'role', p_role,
       'full_name', p_full_name
     ),
     NOW(),
-    NOW()
+    NOW(),
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
   )
   RETURNING id INTO new_user_id;
 
@@ -118,6 +144,30 @@ BEGIN
   RETURN new_user_id;
 END;
 $$;
+
+-- =============================================
+-- REPAIR: fix users already created with NULL token columns
+-- Run this once to unblock logins that fail with an empty `{}` error.
+-- (Safe / idempotent: only touches rows where the column is NULL.)
+-- =============================================
+UPDATE auth.users SET
+  confirmation_token         = COALESCE(confirmation_token, ''),
+  recovery_token             = COALESCE(recovery_token, ''),
+  email_change               = COALESCE(email_change, ''),
+  email_change_token_new     = COALESCE(email_change_token_new, ''),
+  email_change_token_current = COALESCE(email_change_token_current, ''),
+  phone_change               = COALESCE(phone_change, ''),
+  phone_change_token         = COALESCE(phone_change_token, ''),
+  reauthentication_token     = COALESCE(reauthentication_token, '')
+WHERE
+  confirmation_token IS NULL OR
+  recovery_token IS NULL OR
+  email_change IS NULL OR
+  email_change_token_new IS NULL OR
+  email_change_token_current IS NULL OR
+  phone_change IS NULL OR
+  phone_change_token IS NULL OR
+  reauthentication_token IS NULL;
 
 -- =======  DOWN  ========
 -- DROP FUNCTION IF EXISTS saorafael_create_user(TEXT, TEXT, TEXT, TEXT);
