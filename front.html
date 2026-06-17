@@ -7811,7 +7811,10 @@
                   typeof rcGetCompartmentsConfig === "function"
                     ? rcGetCompartmentsConfig()
                     : {};
-                if (compsM.length && typeof rcRecommendLuminarias === "function") {
+                if (
+                  compsM.length &&
+                  typeof rcRecommendLuminarias === "function"
+                ) {
                   let tRec = 0,
                     tMin = 0,
                     tMax = 0,
