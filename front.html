@@ -4713,6 +4713,15 @@
         } else {
           Object.entries(stepSchema.fields).forEach(
             ([fieldName, fieldSchema]) => {
+              // Skip validation for hidden fields (conditional fields like prazo_pagamento_outros, transportadora_*)
+              const fieldEl = document.querySelector(`[data-field-name="${fieldName}"]`);
+              const fieldParent = fieldEl?.closest('.form-group');
+              const isHidden = fieldParent && window.getComputedStyle(fieldParent).display === 'none';
+              
+              if (isHidden) {
+                return; // Skip validation for hidden fields
+              }
+              
               const value = formData[stepKey][fieldName];
               const fieldErrors = validateField(fieldSchema, value, fieldName);
               if (fieldErrors.length > 0) {
