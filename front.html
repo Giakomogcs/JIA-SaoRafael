@@ -3513,21 +3513,21 @@
               tag: "PLANILHA",
             },
             comissao_representante: {
-              label: "Comissão Representante (%)",
+              label: "RT de indicação (%)",
               type: "number",
               required: true,
               min: 0,
-              max: 15,
+              max: 5,
               step: 0.5,
               default: 5,
               tag: "PLANILHA",
             },
             comissao_vendedor: {
-              label: "Comissão Vendedor (%)",
+              label: "RT dificuldade (%)",
               type: "number",
               required: false,
               min: 0,
-              max: 10,
+              max: 5,
               step: 0.5,
               default: 3,
             },
@@ -3549,14 +3549,14 @@
             razao_social: {
               label: "Razão Social / Nome",
               type: "text",
-              required: true,
+              required: false,
               minLength: 3,
               tag: "PLANILHA",
             },
             cnpj_cpf: {
               label: "CNPJ / CPF",
               type: "text",
-              required: true,
+              required: false,
               customValidation: "cpfcnpj",
               patternMsg: "Digite CPF ou CNPJ",
               tag: "PLANILHA",
@@ -3569,7 +3569,7 @@
             cep: {
               label: "CEP",
               type: "cep",
-              required: true,
+              required: false,
               pattern: "^\\d{5}-?\\d{3}$",
               patternMsg: "CEP inválido. Ex: 01310-100",
               hint: "Digite o CEP e clique em buscar para preencher o endereço automaticamente.",
@@ -3577,14 +3577,14 @@
             endereco_entrega: {
               label: "Endereço (Logradouro e Bairro)",
               type: "text",
-              required: true,
+              required: false,
               minLength: 5,
               tag: "PLANILHA",
             },
             endereco_numero: {
               label: "Número",
               type: "text",
-              required: true,
+              required: false,
               maxLength: 15,
               tag: "PLANILHA",
             },
@@ -3616,7 +3616,7 @@
               hint: "Define frete, deslocamento técnico e DIFAL. Informe se o local de instalação é o mesmo do endereço acima.",
             },
             dados_tecnicos_resumo: {
-              label: "Dados Técnicos (Resumo da Operação)",
+              label: "Ramo de Atividade",
               type: "creatable",
               required: false,
               options: [
@@ -3655,14 +3655,13 @@
               patternMsg: "E-mail inválido",
             },
             exigencia_faturamento: {
-              label: "Exigência de Faturamento",
+              label: "Aprovação de Faturamento via…",
               type: "creatable",
               required: false,
               options: [
                 "Contrato Assinado",
                 "Autorização por E-mail",
                 "Pedido de Compra",
-                "Emissão de Boleto",
                 "Nenhuma",
               ],
             },
@@ -3678,7 +3677,16 @@
                 "Entrada + 30/60",
                 "Entrada + 30/60/90",
                 "Sob Consulta",
+                "Outros",
               ],
+              tag: "PLANILHA",
+            },
+            prazo_pagamento_outros: {
+              label: "Outros (especificar)",
+              type: "text",
+              required: true,
+              minLength: 3,
+              hidden: true,
               tag: "PLANILHA",
             },
           },
@@ -3727,19 +3735,19 @@
               customValidation: "modular028",
             },
             altura: {
-              label: "Altura (m)",
+              label: "Altura interna (m)",
               type: "creatable",
               required: true,
               tag: "PLANILHA",
-              hint: "Selecione ou digite um valor (incrementos de 0.05m). Ex: 2.20, 2.50, 3.00",
+              hint: "Selecione ou digite um valor (incrementos de 0.005m). Ex: 1.50, 2.20, 3.00",
               options: (() => {
                 const vals = [];
                 for (
-                  let v = 2.0;
-                  v <= 6.0;
-                  v = Math.round((v + 0.05) * 100) / 100
+                  let v = 1.5;
+                  v <= 12.0;
+                  v = Math.round((v + 0.005) * 1000) / 1000
                 )
-                  vals.push(v.toFixed(2));
+                  vals.push(v.toFixed(3));
                 return vals;
               })(),
               customValidation: "modular005",
@@ -3801,7 +3809,7 @@
               type: "select",
               required: true,
               options: [
-                "Sem Piso (sobre piso existente)",
+                "Piso Alvenaria",
                 "Com Piso Isolado (50mm)",
                 "Com Piso Isolado (75mm)",
                 "Com Piso Isolado (100mm)",
@@ -3963,7 +3971,6 @@
               required: true,
               options: [
                 "Incluso no equipamento",
-                "Separado (NF à parte)",
                 "Por conta do cliente",
                 "Sob consulta",
               ],
@@ -6741,7 +6748,7 @@
         const isFullWidth =
           field.type === "textarea" || field.type === "local-instalacao-box";
 
-        let html = `<div class="form-group${isFullWidth ? " full-width" : ""}">`;
+        let html = `<div class="form-group${isFullWidth ? " full-width" : ""}"${field.hidden ? ' style="display:none"' : ""}>`;
         html += `<label>
         ${field.required ? '<span class="required">*</span>' : ""}
         ${field.label}
@@ -7618,6 +7625,39 @@
             const linkedName = formData.step2?.razao_social || "";
             lockClientFields(panel, linkedName);
             bindClientLockedFieldHandlers(panel);
+          }
+
+          // PRAZO_PAGAMENTO "Outros" conditional field toggle
+          const prazoPagamentoContainer = panel.querySelector(
+            '[data-field-name="prazo_pagamento"]',
+          );
+          const prazoOutrosContainer = panel.querySelector(
+            '[data-field-name="prazo_pagamento_outros"]',
+          );
+          if (prazoPagamentoContainer && prazoOutrosContainer) {
+            const prazoInput =
+              prazoPagamentoContainer.querySelector(".creatable-input");
+            const toggleOutrosField = () => {
+              const prazoVal = prazoInput.value;
+              const outrosParent = prazoOutrosContainer.closest(".form-group");
+              if (prazoVal === "Outros") {
+                outrosParent.style.display = "block";
+              } else {
+                outrosParent.style.display = "none";
+                // Clear value when hidden
+                const outrosInput = prazoOutrosContainer;
+                if (outrosInput && outrosInput.tagName === "INPUT") {
+                  outrosInput.value = "";
+                  formData[stepKey]["prazo_pagamento_outros"] = "";
+                  saveToStorage();
+                }
+              }
+            };
+            // Listen to change events
+            prazoInput.addEventListener("input", toggleOutrosField);
+            prazoInput.addEventListener("change", toggleOutrosField);
+            // Initial state on render
+            toggleOutrosField();
           }
         }
 
