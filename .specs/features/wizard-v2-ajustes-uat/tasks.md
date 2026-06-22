@@ -1,7 +1,7 @@
 # Wizard V2 — Ajustes pós-UAT — Tasks
 
 **Design**: [design.md](design.md) · **Spec**: [spec.md](spec.md) · **Context**: [context.md](context.md)  
-**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3 Completa (T14 ✅) | Fase 4-6 em progresso
+**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3 Completa (T14 ✅ + fix crítico eventos) | Fase 4 em progresso (T15 ✅, T16-T18 e T22 pendentes) | Fase 5-6 pendentes
 
 > **Sem suíte automatizada.** Não existe `.specs/codebase/TESTING.md` nem framework de testes —
 > [front.html](../../../front.html) é um SPA single-file. **Gate = verificação manual no navegador**
@@ -210,12 +210,12 @@ T20 [vínculo N→1] ──→ T21 [filtro histórico]
 
 ### Fase 4 — Widgets condicionais
 
-#### T15: Campos da Transportadora Indicada
-**What**: Ao escolher "Transportadora indicada" em `tipo_frete`, revelar Nome/Telefone/E-mail (não obrigatórios); telefone usa `maskPhoneIntl`.
-**Where**: step5 [front.html#L3973](../../../front.html#L3973); padrão do `local-instalacao-box` [#L7028](../../../front.html#L7028).
+#### T15: Campos da Transportadora Indicada — ✅ DONE
+**What**: Ao escolher "Transportadora indicada pelo cliente" em `exigencia_faturamento` (step2), revelar Nome/Telefone/E-mail; telefone usa `maskPhoneIntl`.
+**Where**: SCHEMA [front.html#L3689-L3724](../../../front.html#L3689); renderField [#L6756-6763 email case](../../../front.html#L6756); bindFieldEvents [#L7807-7855 toggle](../../../front.html#L7807) + [#L7858-7886 phone mask](../../../front.html#L7858).
 **Depends on**: T11 · **Requirement**: FRETE-01
-**Done when**: [ ] Campos aparecem só com "Transportadora indicada"; [ ] somem nas outras; [ ] avança vazios; [ ] persistem em `formData.step5`.
-**Tests**: manual · **Gate**: smoke
+**Done when**: [x] Campos aparecem só com "Transportadora indicada pelo cliente"; [x] somem nas outras; [x] telefone usa maskPhoneIntl (+55 (DD) NNNNN-NNNN); [x] persistem em `formData.step2`.
+**Tests**: manual · **Gate**: smoke ✅
 
 #### T16: Externa calculada (hint interna→externa)
 **What**: Exibir hint "externa ≈ interna + 2×espessura" ao lado de comprimento/largura/altura, recalculado em mudança de dimensão ou `espessura_painel`.

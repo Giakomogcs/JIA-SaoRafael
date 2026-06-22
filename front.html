@@ -3694,8 +3694,32 @@
                 "Contrato Assinado",
                 "Autorização por E-mail",
                 "Pedido de Compra",
+                "Transportadora indicada pelo cliente",
                 "Nenhuma",
               ],
+            },
+            transportadora_nome: {
+              label: "Nome da Transportadora",
+              type: "text",
+              required: true,
+              hidden: true,
+              tag: "PLANILHA",
+            },
+            transportadora_telefone: {
+              label: "Telefone da Transportadora",
+              type: "tel",
+              required: true,
+              hidden: true,
+              tag: "PLANILHA",
+            },
+            transportadora_email: {
+              label: "E-mail da Transportadora",
+              type: "email",
+              required: false,
+              hidden: true,
+              tag: "PLANILHA",
+              pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+              patternMsg: "E-mail inválido",
             },
             prazo_pagamento: {
               label: "Prazo de Pagamento",
@@ -6790,7 +6814,12 @@
         switch (field.type) {
           case "text":
           case "tel":
-            html += `<input type="${field.type === "tel" ? "tel" : "text"}" class="form-input${hasError ? " error" : ""}" 
+          case "email":
+            let inputType = "text";
+            if (field.type === "tel") inputType = "tel";
+            if (field.type === "email") inputType = "email";
+            
+            html += `<input type="${inputType}" class="form-input${hasError ? " error" : ""}" 
             ${dataAttr} value="${escapeAttr(value)}" 
             placeholder="${field.patternMsg || ""}" />`;
             break;
@@ -7279,6 +7308,9 @@
                 e.preventDefault(); // Prevent blur before click registers
                 const selectedValue = opt.getAttribute("data-value");
                 inputEl.value = selectedValue;
+                // Dispatch change event to notify other listeners (e.g. toggleTransportadoraFields)
+                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                 updateValue();
                 dropdown.classList.remove("open");
                 // Update selected state
@@ -7774,6 +7806,56 @@
           const telefoneContainer = panel.querySelector(
             '[data-field-name="contato_telefone"]',
           );
+          
+          // TRANSPORTADORA conditional fields (T15)
+          const exigenciaContainer = panel.querySelector(
+            '[data-field-name="exigencia_faturamento"]',
+          );
+          const transp_nome = panel.querySelector('[data-field-name="transportadora_nome"]');
+          const transp_tel = panel.querySelector('[data-field-name="transportadora_telefone"]');
+          const transp_email = panel.querySelector('[data-field-name="transportadora_email"]');
+          
+          if (exigenciaContainer && transp_nome && transp_tel && transp_email) {
+            const exigenciaInput = exigenciaContainer.querySelector(".creatable-input");
+            const toggleTransportadoraFields = () => {
+              const exigVal = exigenciaInput.value;
+              const showTransp = exigVal === "Transportadora indicada pelo cliente";
+              
+              [transp_nome, transp_tel, transp_email].forEach(container => {
+                const parent = container.closest(".form-group");
+                if (parent) {
+                  parent.style.display = showTransp ? "block" : "none";
+                }
+              });
+              
+              // Clear values when hidden
+              if (!showTransp) {
+                const nomeInput = transp_nome.tagName === "INPUT" ? transp_nome : transp_nome.querySelector("input");
+                const telInput = transp_tel.tagName === "INPUT" ? transp_tel : transp_tel.querySelector("input");
+                const emailInput = transp_email.tagName === "INPUT" ? transp_email : transp_email.querySelector("input");
+                
+                if (nomeInput) {
+                  nomeInput.value = "";
+                  formData[stepKey]["transportadora_nome"] = "";
+                }
+                if (telInput) {
+                  telInput.value = "";
+                  formData[stepKey]["transportadora_telefone"] = "";
+                }
+                if (emailInput) {
+                  emailInput.value = "";
+                  formData[stepKey]["transportadora_email"] = "";
+                }
+                saveToStorage();
+              }
+            };
+            
+            // Listen to change events
+            exigenciaInput.addEventListener("input", toggleTransportadoraFields);
+            exigenciaInput.addEventListener("change", toggleTransportadoraFields);
+            // Initial state on render
+            toggleTransportadoraFields();
+          }
           if (telefoneContainer) {
             const telefoneInput =
               telefoneContainer.tagName === "INPUT"
@@ -7793,6 +7875,32 @@
               if (formData[stepKey]["contato_telefone"]) {
                 telefoneInput.value = maskPhoneIntl(
                   formData[stepKey]["contato_telefone"],
+                );
+              }
+            }
+          }
+          
+          // TRANSPORTADORA_TELEFONE international phone mask (T15)
+          const transpTelContainer = panel.querySelector('[data-field-name="transportadora_telefone"]');
+          if (transpTelContainer) {
+            const transpTelInput =
+              transpTelContainer.tagName === "INPUT"
+                ? transpTelContainer
+                : transpTelContainer.querySelector("input");
+            if (transpTelInput) {
+              transpTelInput.addEventListener("input", (e) => {
+                const raw = e.target.value;
+                const masked = maskPhoneIntl(raw);
+                if (masked !== raw) {
+                  e.target.value = masked;
+                  formData[stepKey]["transportadora_telefone"] = masked;
+                  saveToStorage();
+                }
+              });
+              // Apply mask on initial render if value exists
+              if (formData[stepKey]["transportadora_telefone"]) {
+                transpTelInput.value = maskPhoneIntl(
+                  formData[stepKey]["transportadora_telefone"],
                 );
               }
             }
