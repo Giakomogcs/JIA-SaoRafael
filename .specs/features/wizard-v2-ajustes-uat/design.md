@@ -40,27 +40,27 @@ graph TD
 
 ### Componentes existentes a alavancar
 
-| Componente | Local | Como usar |
-| ---------- | ----- | --------- |
-| `renderField()` (case `creatable`/`select`) | [front.html#L6770-L6806](../../../front.html#L6770) | Ponto único de render — refatorar o `creatable` aqui |
-| `filterOptions()` | [front.html#L7897](../../../front.html#L7897) | Mover filtro para input de busca dedicado; nunca esconder opção por valor selecionado |
-| handlers creatable (focus/input/mousedown/blur) | [front.html#L7172-L7205](../../../front.html#L7172) | Adaptar para 2 elementos (display + search) e clique no chevron reabrir |
-| `maskCpfCnpj` / `maskCep` | [#L8864](../../../front.html#L8864) / [#L8802](../../../front.html#L8802) | Padrão para criar `maskPhoneIntl` (DDI+DDD+nº) |
-| `local-instalacao-box` (radio + sub-fields condicionais) | [#L7028-L7090](../../../front.html#L7028) | **Padrão de referência** para os campos condicionais da transportadora |
-| Modal de compartimento (config temp/finalidade/luminárias) | [#L13850-L13970](../../../front.html#L13850) | Acrescentar "espessura isolante piso" por compartimento |
-| `ACESSORIOS_CAT` (catálogo de porta) | [#L14380-L14432](../../../front.html#L14380) | Adicionar chapa xadrez; tornar Resistência+Mola fixas |
-| `_perimeterWallsForCompartment` | [#L14222](../../../front.html#L14222) | Estender para incluir paredes divisórias |
-| `RC_USO_LABELS / _TEMP_RANGES / _STORAGE_DENSITY` | [#L15445-L15486](../../../front.html#L15445) | Adicionar entrada `diversos` espelhando `outros` |
-| `bindClientAutocomplete` + `_client_id`/`_client_locked` | [#L7625-L7640](../../../front.html#L7625) | Base do vínculo N→1 |
-| `espessura_painel` → dimensão externa | [#L12214](../../../front.html#L12214), [#L13308](../../../front.html#L13308) | Reusar para exibir "externa calculada" |
+| Componente                                                 | Local                                                                        | Como usar                                                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `renderField()` (case `creatable`/`select`)                | [front.html#L6770-L6806](../../../front.html#L6770)                          | Ponto único de render — refatorar o `creatable` aqui                                  |
+| `filterOptions()`                                          | [front.html#L7897](../../../front.html#L7897)                                | Mover filtro para input de busca dedicado; nunca esconder opção por valor selecionado |
+| handlers creatable (focus/input/mousedown/blur)            | [front.html#L7172-L7205](../../../front.html#L7172)                          | Adaptar para 2 elementos (display + search) e clique no chevron reabrir               |
+| `maskCpfCnpj` / `maskCep`                                  | [#L8864](../../../front.html#L8864) / [#L8802](../../../front.html#L8802)    | Padrão para criar `maskPhoneIntl` (DDI+DDD+nº)                                        |
+| `local-instalacao-box` (radio + sub-fields condicionais)   | [#L7028-L7090](../../../front.html#L7028)                                    | **Padrão de referência** para os campos condicionais da transportadora                |
+| Modal de compartimento (config temp/finalidade/luminárias) | [#L13850-L13970](../../../front.html#L13850)                                 | Acrescentar "espessura isolante piso" por compartimento                               |
+| `ACESSORIOS_CAT` (catálogo de porta)                       | [#L14380-L14432](../../../front.html#L14380)                                 | Adicionar chapa xadrez; tornar Resistência+Mola fixas                                 |
+| `_perimeterWallsForCompartment`                            | [#L14222](../../../front.html#L14222)                                        | Estender para incluir paredes divisórias                                              |
+| `RC_USO_LABELS / _TEMP_RANGES / _STORAGE_DENSITY`          | [#L15445-L15486](../../../front.html#L15445)                                 | Adicionar entrada `diversos` espelhando `outros`                                      |
+| `bindClientAutocomplete` + `_client_id`/`_client_locked`   | [#L7625-L7640](../../../front.html#L7625)                                    | Base do vínculo N→1                                                                   |
+| `espessura_painel` → dimensão externa                      | [#L12214](../../../front.html#L12214), [#L13308](../../../front.html#L13308) | Reusar para exibir "externa calculada"                                                |
 
 ### Pontos de integração
 
-| Sistema | Método |
-| ------- | ------ |
-| Workflow Wizard Submit (n8n) | Novos campos em `formData` viajam no submit — conferir mapeamento em [workflows/São Rafael - Wizard Submit (Save Orçamento).json](../../../workflows/) |
-| Supabase `clients` | FK `client_id` no orçamento; filtro no histórico via `client_id` |
-| Prompt de validação | [prompts/system_prompt_wizard_validation.md](../../../prompts/system_prompt_wizard_validation.md) — ajustar RT 0–5%, medida interna×externa, alerta terceiros |
+| Sistema                      | Método                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workflow Wizard Submit (n8n) | Novos campos em `formData` viajam no submit — conferir mapeamento em [workflows/São Rafael - Wizard Submit (Save Orçamento).json](../../../workflows/)        |
+| Supabase `clients`           | FK `client_id` no orçamento; filtro no histórico via `client_id`                                                                                              |
+| Prompt de validação          | [prompts/system_prompt_wizard_validation.md](../../../prompts/system_prompt_wizard_validation.md) — ajustar RT 0–5%, medida interna×externa, alerta terceiros |
 
 ---
 
@@ -164,16 +164,27 @@ graph TD
 
 ```typescript
 // Novos campos em formData (persistidos + enviados no submit)
-interface Step1Patch { /* RT */ comissao_representante: number /*0-5*/; comissao_vendedor: number /*0-5*/ }
-interface Step2Patch { nome_fantasia?: string; contribuinte_icms?: 'Sim'|'Não'; _client_id?: string }
-interface Step5Patch {
-  transportadora_nome?: string
-  transportadora_telefone?: string
-  transportadora_email?: string
-  chapa_xadrez_laterais?: string
+interface Step1Patch {
+  /* RT */ comissao_representante: number /*0-5*/;
+  comissao_vendedor: number; /*0-5*/
 }
-interface CompartmentConfigPatch { espessura_piso?: string /* mm */ }
-interface PortaPatch { interna?: boolean }
+interface Step2Patch {
+  nome_fantasia?: string;
+  contribuinte_icms?: "Sim" | "Não";
+  _client_id?: string;
+}
+interface Step5Patch {
+  transportadora_nome?: string;
+  transportadora_telefone?: string;
+  transportadora_email?: string;
+  chapa_xadrez_laterais?: string;
+}
+interface CompartmentConfigPatch {
+  espessura_piso?: string; /* mm */
+}
+interface PortaPatch {
+  interna?: boolean;
+}
 ```
 
 **Relationships**: `orcamento.client_id → clients.id` (1 cliente : N orçamentos). Confirmar/crear coluna em migration.
@@ -182,33 +193,33 @@ interface PortaPatch { interna?: boolean }
 
 ## Error Handling Strategy
 
-| Cenário | Tratamento | Impacto p/ usuário |
-| ------- | ---------- | ------------------ |
-| Telefone DDI ≠ 55 incompleto | borda de erro no blur, não bloqueia | vê aviso visual |
-| Altura fora de 1,50–12 | `modular005` + faixa → erro de validação | bloqueia avanço com sugestão |
-| "Outros" pagamento sem especificar | exigir campo livre | mensagem inline |
-| Compartimento único (sem divisória) | esconder opção de porta divisória | nada incomum |
-| Orçamento antigo comissão > 5% | exibir sem quebrar; limite só na edição | sem erro |
-| `client_id` ausente no schema | criar migration antes do filtro | — |
+| Cenário                             | Tratamento                               | Impacto p/ usuário           |
+| ----------------------------------- | ---------------------------------------- | ---------------------------- |
+| Telefone DDI ≠ 55 incompleto        | borda de erro no blur, não bloqueia      | vê aviso visual              |
+| Altura fora de 1,50–12              | `modular005` + faixa → erro de validação | bloqueia avanço com sugestão |
+| "Outros" pagamento sem especificar  | exigir campo livre                       | mensagem inline              |
+| Compartimento único (sem divisória) | esconder opção de porta divisória        | nada incomum                 |
+| Orçamento antigo comissão > 5%      | exibir sem quebrar; limite só na edição  | sem erro                     |
+| `client_id` ausente no schema       | criar migration antes do filtro          | —                            |
 
 ---
 
 ## Tech Decisions (não óbvias)
 
-| Decisão | Escolha | Racional |
-| ------- | ------- | -------- |
-| Externa calculada | hint informativo, não campo | evita duplicar fonte de verdade (interna é o input) |
-| Resistência/Mola "sempre" | flag `fixed` no catálogo, checkbox travado marcado | mantém no payload sem o usuário poder remover |
-| Alerta de terceiros | via prompt de validação (+ detector local opcional) | reaproveita o mesmo mecanismo da Etapa 1 |
-| Porta divisória | função auxiliar separada somada às perimetrais | não reescreve geometria existente (frágil) |
-| Vínculo de cliente | FK `client_id` + filtro no histórico | menor mudança; reusa clients 011/012 |
+| Decisão                   | Escolha                                             | Racional                                            |
+| ------------------------- | --------------------------------------------------- | --------------------------------------------------- |
+| Externa calculada         | hint informativo, não campo                         | evita duplicar fonte de verdade (interna é o input) |
+| Resistência/Mola "sempre" | flag `fixed` no catálogo, checkbox travado marcado  | mantém no payload sem o usuário poder remover       |
+| Alerta de terceiros       | via prompt de validação (+ detector local opcional) | reaproveita o mesmo mecanismo da Etapa 1            |
+| Porta divisória           | função auxiliar separada somada às perimetrais      | não reescreve geometria existente (frágil)          |
+| Vínculo de cliente        | FK `client_id` + filtro no histórico                | menor mudança; reusa clients 011/012                |
 
 ---
 
 ## Open items para Tasks/confirmação
 
 1. **Migration `client_id`**: confirmar se a tabela de orçamentos já tem a coluna; senão, nova migration `013_orcamento_client_link.sql`.
-2. **Workflow Submit**: garantir que novos campos (`nome_fantasia`, `contribuinte_icms`, transportadora_*, `_client_id`, `espessura_piso` por compartimento) sejam persistidos no n8n/Supabase.
+2. **Workflow Submit**: garantir que novos campos (`nome_fantasia`, `contribuinte_icms`, transportadora\_\*, `_client_id`, `espessura_piso` por compartimento) sejam persistidos no n8n/Supabase.
 3. **PAG-01**: confirmar com o usuário a lista final de prazos (RAG L48 + "Outros").
 
 ---

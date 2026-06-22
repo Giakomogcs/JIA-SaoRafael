@@ -12,6 +12,7 @@ Exemplos: `saorafael_search_clients`, `saorafael_upsert_client`, `saorafael_list
 Exemplos: `001_base_tables.sql`, `010_fix_chat_message_user_id.sql`, `011_clients_table_seed.sql`.
 
 **Workflows n8n:** nomes legíveis, dois estilos coexistindo (legado):
+
 - Com espaços: `São Rafael - AgentRag (Wizard + Chat).json`
 - Hifenizado: `SãoRafael-Chat-GET-History.json`
 
@@ -27,6 +28,7 @@ Exemplos: `/saorafael-AgentRag`, `/saorafael-wizard-submit`, `/saorafael-index-d
 ## Code Organization
 
 **SQL (migrations):**
+
 - Cada arquivo abre com um header em comentário (`-- ===== São Rafael — NNN: Título =====`).
 - Seções marcadas com `-- =======  UP  ========`.
 - Funções declaradas com `CREATE OR REPLACE FUNCTION ... LANGUAGE plpgsql SECURITY DEFINER SET search_path = public`.
@@ -34,10 +36,12 @@ Exemplos: `/saorafael-AgentRag`, `/saorafael-wizard-submit`, `/saorafael-index-d
 - **Imutabilidade:** nunca editar migration existente — sempre criar novo arquivo numerado.
 
 **Workflows (n8n):**
+
 - Editados visualmente no n8n e exportados como JSON.
 - Conferir `active: true` antes de commitar se a intenção é deixar ativo.
 
 **Prompts:**
+
 - Fonte canônica em `prompts/*.md`; propagação manual para o node `set` correspondente no n8n.
 
 ## Type Safety / Documentation

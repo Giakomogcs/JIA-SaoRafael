@@ -50,43 +50,52 @@ SaoRafael/
 ## Module Organization
 
 ### Frontend (`front.html`)
+
 **Purpose:** Toda a interface (wizard, chat, admin, CRM) num único arquivo HTML.
 **Location:** raiz do repo.
 **Áreas internas:** Login overlay · Header/Sidebar · Wizard (step indicator, painéis condicionais, validation tracker, Reality Check Engine) · Chat (sessões, histórico, input/prune/edit) · Admin (users CRUD, submissions) · CRM (busca de cliente, modal de histórico).
 **Config:** constantes no topo do `<script>`: `SUPABASE_URL`, `SUPABASE_ANON`, `N8N_BASE`.
 
 ### Banco de dados (`migrations/`)
+
 **Purpose:** Schema, RPCs, triggers e policies RLS versionados.
 **Convenção:** arquivos numerados sequenciais; nunca editar os anteriores — sempre adicionar novo. Cada arquivo costuma ter seção `-- UP`.
 
 ### Orquestração (`workflows/`)
+
 **Purpose:** Lógica de backend — IA, RAG, protocolo, setup de banco.
 **Edição:** exportar de volta como JSON do n8n e substituir o arquivo.
 
 ### Prompts (`prompts/`)
+
 **Purpose:** Fonte de verdade dos system prompts. Precisam ser propagados manualmente para os nodes `set` do n8n.
 
 ### Conhecimento RAG (`rag_documents/`)
+
 **Purpose:** Documentos `.md` indexados no vector store via Google Drive + `POST /saorafael-index-drive`.
 
 ## Where Things Live
 
 **Wizard de orçamento:**
+
 - UI: `front.html` (seção Wizard)
 - Validação IA: workflow `São Rafael - AgentRag` (flag `wizardValidation: true`)
 - Validação determinística: Reality Check Engine em JS dentro de `front.html`
 - Persistência: workflow `Wizard Submit` → `saorafael_wizard_submission`
 
 **Chat assistente:**
+
 - UI: `front.html` (seção Chat)
 - Lógica IA/RAG: workflow `AgentRag` (LangChain Agent + pgvector)
 - Histórico: tabela `saorafael_chat_message` + workflows Chat-GET/DELETE
 
 **CRM de clientes:**
+
 - UI: `front.html` (busca + modal)
 - Dados: tabela `saorafael_clients` + RPCs `saorafael_*_client*`
 
 **Autenticação / autorização:**
+
 - Frontend: `supabase-js` (`signInWithPassword`)
 - Banco: RLS policies (`migrations/003`, `012`) + `saorafael_is_admin()`
 

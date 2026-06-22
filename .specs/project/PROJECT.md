@@ -14,6 +14,7 @@
 ## Tech Stack
 
 **Core:**
+
 - Orquestração: n8n (workflows JSON, webhooks REST)
 - Banco: Supabase (PostgreSQL 15+) com RLS + pgvector
 - Frontend: HTML + JS vanilla (`front.html`), Tailwind via CDN
@@ -23,6 +24,7 @@
 ## Scope
 
 **v1 inclui (estado atual):**
+
 - Wizard de orçamento com validação IA + Reality Check determinístico
 - Assistente conversacional com RAG (manual + regras de negócio)
 - CRM leve de clientes (busca fuzzy, histórico, vínculo de orçamentos)
@@ -32,6 +34,7 @@
 - Ingestão RAG a partir do Google Drive
 
 **Explicitamente fora de escopo (hoje):**
+
 - Backend tradicional / API própria fora do n8n
 - Build pipeline ou framework SPA
 - Suíte de testes automatizados

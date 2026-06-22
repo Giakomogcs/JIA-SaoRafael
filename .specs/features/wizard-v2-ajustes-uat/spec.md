@@ -24,11 +24,11 @@ vários orçamentos a um cliente, chapa xadrez, alerta de IA em observações).
 
 ## Out of Scope
 
-| Item | Motivo |
-| ---- | ------ |
-| Reescrever o wizard fora do `front.html` single-file | Mudança arquitetural não solicitada; manter padrão atual |
-| Recalcular fórmulas da planilha de carga térmica | Feedback é de UI/regra de cadastro, não de engenharia de refrigeração |
-| Migração de dados de orçamentos já salvos | Nenhum requisito pede retrocompatibilidade de registros antigos |
+| Item                                                 | Motivo                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Reescrever o wizard fora do `front.html` single-file | Mudança arquitetural não solicitada; manter padrão atual              |
+| Recalcular fórmulas da planilha de carga térmica     | Feedback é de UI/regra de cadastro, não de engenharia de refrigeração |
+| Migração de dados de orçamentos já salvos            | Nenhum requisito pede retrocompatibilidade de registros antigos       |
 
 ---
 
@@ -46,6 +46,7 @@ só o que contém "feira". O comportamento de foco/clique está em
 [front.html](../../../front.html#L7172-L7205).
 
 **Acceptance Criteria**:
+
 1. WHEN o usuário abre um select creatable THEN o sistema SHALL exibir **todas** as opções, independente do valor já selecionado.
 2. WHEN o usuário quer pesquisar THEN o sistema SHALL oferecer um campo de busca **separado** do campo que mostra o valor escolhido.
 3. WHEN o usuário já selecionou uma opção e clica de novo no dropdown (seta ▼) THEN o sistema SHALL reabrir a lista completa e permitir trocar a seleção (corrige o "trava após selecionar" relatado na Etapa 2).
@@ -64,6 +65,7 @@ continuem mascarados, para evitar dados inconsistentes.
 ([L3592](../../../front.html#L3592)) tem apenas `pattern`, **sem máscara** e **sem DDI**.
 
 **Acceptance Criteria**:
+
 1. WHEN o usuário digita no telefone do contato THEN o sistema SHALL aplicar máscara `+DD (DD) DDDDD-DDDD` (DDI + DDD + número).
 2. WHEN o DDI não é informado THEN o sistema SHALL assumir `+55` como padrão (Brasil) editável.
 3. WHEN o usuário digita CEP/CNPJ THEN o sistema SHALL manter o mascaramento atual.
@@ -82,6 +84,7 @@ continuem mascarados, para evitar dados inconsistentes.
 (`max: 10`, default 3) em [L3516-L3530](../../../front.html#L3516-L3530).
 
 **Acceptance Criteria**:
+
 1. WHEN a Etapa 1 é exibida THEN o sistema SHALL rotular os campos como "RT de indicação (%)" e "RT dificuldade (%)".
 2. WHEN o usuário informa valor > 5 ou < 0 THEN o sistema SHALL rejeitar/limitar a faixa 0–5%.
 3. WHEN o orçamento é salvo THEN o sistema SHALL persistir os novos rótulos/limites (verificar binding com planilha/workflow).
@@ -99,6 +102,7 @@ obrigatórios, e quero campos "Nome Fantasia" e "Contribuinte de ICMS (S/N)".
 `endereco_numero` em [L3553-L3592](../../../front.html#L3553-L3592) com `required: true`.
 
 **Acceptance Criteria**:
+
 1. WHEN a Etapa 2 valida THEN o sistema SHALL **não** exigir Razão Social, CNPJ, CEP, Endereço, nº.
 2. WHEN a Etapa 2 é exibida THEN o sistema SHALL incluir "Nome Fantasia" (texto) e "Contribuinte de ICMS (S/N)" (sim/não).
 3. WHEN nenhum desses campos é preenchido THEN o sistema SHALL permitir avançar.
@@ -119,6 +123,7 @@ cliente e poder filtrar a lista por cliente.
 N orçamentos → 1 cliente e o filtro de listagem.
 
 **Acceptance Criteria**:
+
 1. WHEN o usuário está em um orçamento THEN o sistema SHALL permitir vinculá-lo a um cliente existente (botão + select).
 2. WHEN o usuário lista orçamentos THEN o sistema SHALL permitir filtrar por cliente.
 3. WHEN um cliente tem vários orçamentos THEN o sistema SHALL exibi-los agrupados/filtrados.
@@ -135,6 +140,7 @@ N orçamentos → 1 cliente e o filtro de listagem.
 **User Story**: Como vendedor, quero os rótulos/menus alinhados ao vocabulário da empresa.
 
 **Acceptance Criteria**:
+
 1. WHEN Etapa 3 exibe altura THEN o sistema SHALL rotular "Altura interna (m)" e a especificação SHALL ser a **altura interna** (padrão SR). (`altura`, [L3760](../../../front.html#L3760))
 2. WHEN Etapa 3 exibe piso THEN o sistema SHALL substituir "Sem Piso (sobre piso existente)" por "Piso Alvenaria". (`piso`, [L3804](../../../front.html#L3804))
 3. WHEN Etapa 2 exibe o resumo THEN o sistema SHALL renomear "Dados Técnicos (Resumo da Operação)" para "Ramo de Atividade". (`dados_tecnicos_resumo`, [L3619](../../../front.html#L3619))
@@ -154,6 +160,7 @@ trocar a opção.
 `prazo_pagamento` em [L3672-L3690](../../../front.html#L3672-L3690).
 
 **Acceptance Criteria**:
+
 1. WHEN Etapa 2 exibe o campo THEN o sistema SHALL rotular "Aprovação de Faturamento via…".
 2. WHEN o menu é aberto THEN o sistema SHALL **não** conter "Emissão de Boleto".
 3. WHEN o usuário já selecionou e clica de novo THEN o sistema SHALL permitir trocar (resolvido junto do P1 #1).
@@ -174,6 +181,7 @@ finalidade "Diversos" disponível.
 compartimento ([L13881](../../../front.html#L13881)).
 
 **Acceptance Criteria**:
+
 1. WHEN Etapa 3 calcula opções de altura THEN o sistema SHALL ir de **1,50 m a 12 m** em passos de **5 mm** (0,005).
 2. WHEN o usuário escolhe largura THEN o sistema SHALL crescer de **280 em 280 mm** (já atende — validar).
 3. WHEN Etapa 3 oferece finalidade THEN o sistema SHALL incluir "Diversos" (categoria genérica, faixa térmica ampla como `outros`).
@@ -197,6 +205,7 @@ como itens selecionáveis. Acessórios estáticos da câmara em Etapa 4 (`estant
 há "chapa xadrez".
 
 **Acceptance Criteria**:
+
 1. WHEN o modal de porta é aberto THEN o sistema SHALL apresentar "Resistência no Batente" e "Mola Aérea" como **sempre incluídas** (não desmarcáveis / fixas no menu).
 2. WHEN Etapa 4 é exibida THEN o sistema SHALL oferecer "Chapa Xadrez na Porta" como acessório.
 3. WHEN Etapa 4/Etapa 3 é exibida THEN o sistema SHALL oferecer "Chapa Xadrez nas Laterais da Câmara".
@@ -210,10 +219,11 @@ compartimentos), não só nas paredes do perímetro.
 
 **Contexto técnico**: As paredes permitidas vêm de `_perimeterWallsForCompartment`
 ([L14222](../../../front.html#L14222), uso [L14692-L15225](../../../front.html#L14692-L15225)). A
-direção de abertura já tem "Abre p/ Dentro" ([L14377](../../../front.html#L14377)), mas a *parede*
+direção de abertura já tem "Abre p/ Dentro" ([L14377](../../../front.html#L14377)), mas a _parede_
 disponível é só perimetral.
 
 **Acceptance Criteria**:
+
 1. WHEN um compartimento faz divisa com outro THEN o sistema SHALL permitir colocar uma porta na parede divisória.
 2. WHEN a porta é divisória THEN o sistema SHALL refletir isso no visualizador e na validação.
 
@@ -231,6 +241,7 @@ config por compartimento fica no modal (`categoria_produto`, `temperatura_setpoi
 `qtd_luminarias`, [L13850-L13970](../../../front.html#L13850-L13970)).
 
 **Acceptance Criteria**:
+
 1. WHEN o usuário configura um compartimento THEN o sistema SHALL permitir definir a espessura do isolante de piso desse compartimento.
 2. WHEN compartimentos têm espessuras diferentes THEN o sistema SHALL persistir e exibir cada valor.
 
@@ -244,6 +255,7 @@ telefone e e-mail da transportadora (não obrigatórios).
 **Contexto técnico**: `tipo_frete` (select) em [L3973-L3989](../../../front.html#L3973-L3989).
 
 **Acceptance Criteria**:
+
 1. WHEN "Transportadora indicada" é selecionada THEN o sistema SHALL exibir campos Nome, Telefone, E-mail da transportadora.
 2. WHEN outra opção é selecionada THEN o sistema SHALL ocultar esses campos.
 3. WHEN os campos ficam vazios THEN o sistema SHALL permitir avançar (não obrigatórios).
@@ -261,6 +273,7 @@ lógica de alerta do wizard). Campos de observação: `observacoes_comerciais`
 ([L3536](../../../front.html#L3536)) e `observacoes_instalacao` ([L3997](../../../front.html#L3997)).
 
 **Acceptance Criteria**:
+
 1. WHEN uma observação menciona cotação/terceiros THEN o sistema SHALL exibir um alerta do Agente equivalente ao da Etapa 1.
 2. WHEN o texto é neutro THEN o sistema SHALL **não** alertar.
 
@@ -278,32 +291,32 @@ lógica de alerta do wizard). Campos de observação: `observacoes_comerciais`
 
 ## Requirement Traceability
 
-| ID | História | Local em front.html | Fase | Status |
-| -- | -------- | ------------------- | ---- | ------ |
-| CREAT-01 | P1 creatable mostra tudo / não trava | filterOptions L7897; handlers L7172 | Design | Pending |
-| MASK-01 | P1 máscara + DDI telefone | maskCep L8802; contato_telefone L3592 | Design | Pending |
-| RT-01 | P1 RT indicação/dificuldade 0–5% | comissao_* L3516-L3530 | Tasks | Pending |
-| CAD-01 | P1 campos cadastrais opcionais | step2 L3553-L3592 | Tasks | Pending |
-| CAD-02 | P1 Nome Fantasia + Contribuinte ICMS | step2 fields | Design | Pending |
-| CLI-01 | P1 vincular N orçamentos a cliente + filtro | bindClientAutocomplete L7625; migrations 011/012 | In Design | Discussed |
-| LBL-01 | P2 Altura interna (def. interna) | altura L3760 | Tasks | Pending |
-| LBL-02 | P2 "Piso Alvenaria" | piso L3804 | Tasks | Pending |
-| LBL-03 | P2 "Ramo de Atividade" | dados_tecnicos_resumo L3619 | Tasks | Pending |
-| LBL-04 | P2 pergunta local de instalação | local-instalacao-box render L7028 | Tasks | Pending |
-| MENU-01 | P2 remover "Separado (NF à parte)" | faturamento_mao_obra L3941 | Tasks | Pending |
-| FAT-01 | P2 "Aprovação de Faturamento via…" + sem Boleto | exigencia_faturamento L3658 | Tasks | Pending |
-| PAG-01 | P2 prazo pagamento p/ Regras de Negócio + "Outros" | prazo_pagamento L3672 | Design | Pending |
-| DIM-01 | P2 altura 1,50–12 m passo 5 mm | altura options L3760 | Tasks | Pending |
-| DIM-02 | P2 largura passo 280 mm (validar) | largura L3736 | Tasks | Pending |
-| FIN-01 | P2 finalidade "Diversos" | RC_USO_* L15461; select L13881 | In Design | Discussed |
-| DIM-03 | P2 medida externa/oscilação (pedido 311388) | Reality Check + prompt validação | In Design | Discussed |
-| ACC-01 | P2 Resistência+Mola obrigatórias | ACESSORIOS_CAT L14380 | Design | Pending |
-| ACC-02 | P2 chapa xadrez na porta | ACESSORIOS_CAT L14380 | Design | Pending |
-| ACC-03 | P2 chapa xadrez nas laterais | Etapa 4 fields L3850 | Design | Pending |
-| PORTA-01 | P2 porta em divisória | _perimeterWallsForCompartment L14222 | In Design | Discussed |
-| PISO-01 | P2 espessura isolante piso por compartimento | modal compartimento L13850 | Design | Pending |
-| FRETE-01 | P2 dados transportadora indicada | tipo_frete L3973 | Design | Pending |
-| OBS-01 | P2 alerta agente em observações | observacoes_* L3536/L3997 + prompts | Design | Pending |
+| ID       | História                                           | Local em front.html                              | Fase      | Status    |
+| -------- | -------------------------------------------------- | ------------------------------------------------ | --------- | --------- |
+| CREAT-01 | P1 creatable mostra tudo / não trava               | filterOptions L7897; handlers L7172              | Design    | Pending   |
+| MASK-01  | P1 máscara + DDI telefone                          | maskCep L8802; contato_telefone L3592            | Design    | Pending   |
+| RT-01    | P1 RT indicação/dificuldade 0–5%                   | comissao\_\* L3516-L3530                         | Tasks     | Pending   |
+| CAD-01   | P1 campos cadastrais opcionais                     | step2 L3553-L3592                                | Tasks     | Pending   |
+| CAD-02   | P1 Nome Fantasia + Contribuinte ICMS               | step2 fields                                     | Design    | Pending   |
+| CLI-01   | P1 vincular N orçamentos a cliente + filtro        | bindClientAutocomplete L7625; migrations 011/012 | In Design | Discussed |
+| LBL-01   | P2 Altura interna (def. interna)                   | altura L3760                                     | Tasks     | Pending   |
+| LBL-02   | P2 "Piso Alvenaria"                                | piso L3804                                       | Tasks     | Pending   |
+| LBL-03   | P2 "Ramo de Atividade"                             | dados_tecnicos_resumo L3619                      | Tasks     | Pending   |
+| LBL-04   | P2 pergunta local de instalação                    | local-instalacao-box render L7028                | Tasks     | Pending   |
+| MENU-01  | P2 remover "Separado (NF à parte)"                 | faturamento_mao_obra L3941                       | Tasks     | Pending   |
+| FAT-01   | P2 "Aprovação de Faturamento via…" + sem Boleto    | exigencia_faturamento L3658                      | Tasks     | Pending   |
+| PAG-01   | P2 prazo pagamento p/ Regras de Negócio + "Outros" | prazo_pagamento L3672                            | Design    | Pending   |
+| DIM-01   | P2 altura 1,50–12 m passo 5 mm                     | altura options L3760                             | Tasks     | Pending   |
+| DIM-02   | P2 largura passo 280 mm (validar)                  | largura L3736                                    | Tasks     | Pending   |
+| FIN-01   | P2 finalidade "Diversos"                           | RC*USO*\* L15461; select L13881                  | In Design | Discussed |
+| DIM-03   | P2 medida externa/oscilação (pedido 311388)        | Reality Check + prompt validação                 | In Design | Discussed |
+| ACC-01   | P2 Resistência+Mola obrigatórias                   | ACESSORIOS_CAT L14380                            | Design    | Pending   |
+| ACC-02   | P2 chapa xadrez na porta                           | ACESSORIOS_CAT L14380                            | Design    | Pending   |
+| ACC-03   | P2 chapa xadrez nas laterais                       | Etapa 4 fields L3850                             | Design    | Pending   |
+| PORTA-01 | P2 porta em divisória                              | \_perimeterWallsForCompartment L14222            | In Design | Discussed |
+| PISO-01  | P2 espessura isolante piso por compartimento       | modal compartimento L13850                       | Design    | Pending   |
+| FRETE-01 | P2 dados transportadora indicada                   | tipo_frete L3973                                 | Design    | Pending   |
+| OBS-01   | P2 alerta agente em observações                    | observacoes\_\* L3536/L3997 + prompts            | Design    | Pending   |
 
 **Cobertura:** 24 requisitos · 4 gray areas **resolvidos no Discuss** ([context.md](context.md)) · 0 mapeados a tasks ainda ⚠️
 
@@ -330,5 +343,5 @@ lógica de alerta do wizard). Campos de observação: `observacoes_comerciais`
 1. **Discuss** (obrigatório antes de Design) para os 4 gray areas: CLI-01, DIM-03, FIN-01/medida, PORTA-01.
 2. **Design** dos itens que mexem em componentes compartilhados: CREAT-01 (reescrita do creatable),
    CLI-01 (vínculo + filtro), OBS-01 (gatilho de IA), ACC-01/02/03 e PISO-01.
-3. **Quick-mode/Tasks** para os renomeios e ajustes de opção (LBL-*, MENU-01, FAT-01, DIM-01/02, RT-01,
+3. **Quick-mode/Tasks** para os renomeios e ajustes de opção (LBL-\*, MENU-01, FAT-01, DIM-01/02, RT-01,
    CAD-01) — baixo risco, edições pontuais no SCHEMA.

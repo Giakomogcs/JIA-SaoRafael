@@ -10,12 +10,14 @@
 ### AD-002: wizard-v2-ajustes-uat — Discuss + Fase 0 ([2026-06-22])
 
 **Discuss (gray areas):**
+
 - CLI-01: filtro por cliente no Histórico existente; vínculo aceita cliente existente OU novo; 1 cliente : N orçamentos.
 - DIM-03: coletar medida interna + exibir externa calculada (interna + 2× espessura); Reality Check não critica a diferença (só informa).
 - FIN-01: finalidade "Diversos" = espelho de `outros` (-40..15 °C), sem crítica de incompatibilidade.
 - PORTA-01: porta interna única em divisória (sem carga externa); anti-condensação conforme ΔT.
 
 **Fase 0 (confirmações):**
+
 - T0a prazos: manter lista atual do front + acrescentar "Outros".
 - T0a "Outros": abre campo de texto livre **obrigatório** para especificar.
 - T0b RESOLVIDO: submit n8n grava `form_data` inteiro como JSONB → campos novos persistem sem mudar workflow.
