@@ -1597,7 +1597,13 @@
         top: 50%;
         transform: translateY(-50%);
         color: var(--text-secondary);
-        pointer-events: none;
+        transition: transform 0.2s, color 0.2s;
+      }
+      .creatable-chevron:hover {
+        color: var(--color-primary);
+      }
+      .creatable-dropdown.open + .creatable-chevron {
+        transform: translateY(-50%) rotate(180deg);
       }
       .creatable-dropdown {
         position: absolute;
@@ -1608,13 +1614,37 @@
         border: 1px solid var(--border-color);
         border-radius: 8px;
         box-shadow: var(--shadow-lg);
-        max-height: 200px;
-        overflow-y: auto;
+        max-height: 240px;
+        overflow: hidden;
         z-index: 1000;
         display: none;
+        flex-direction: column;
       }
       .creatable-dropdown.open {
-        display: block;
+        display: flex;
+      }
+      .creatable-search-box {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-tertiary, rgba(0,0,0,0.02));
+      }
+      .creatable-search-input {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: inherit;
+        background: var(--bg-input);
+        color: var(--text-primary);
+        outline: none;
+      }
+      .creatable-search-input:focus {
+        border-color: var(--color-primary);
+      }
+      .creatable-options-list {
+        flex: 1;
+        overflow-y: auto;
       }
       .creatable-option {
         padding: 10px 14px;
@@ -6802,14 +6832,19 @@
             <input type="text" class="creatable-input${hasError ? " error" : ""}" 
               value="${escapeAttr(value)}" placeholder="Selecione ou digite..." 
               autocomplete="off" />
-            <div class="creatable-chevron"><i data-lucide="chevron-down" style="width:14px;height:14px"></i></div>
+            <div class="creatable-chevron" style="pointer-events:auto;cursor:pointer;" title="Abrir opções"><i data-lucide="chevron-down" style="width:14px;height:14px"></i></div>
             <div class="creatable-dropdown">
-              ${(field.options || [])
-                .map(
-                  (opt) =>
-                    `<div class="creatable-option${opt === value ? " selected" : ""}" data-value="${escapeAttr(opt)}">${escapeHtml(opt)}</div>`,
-                )
-                .join("")}
+              <div class="creatable-search-box">
+                <input type="text" class="creatable-search-input" placeholder="Buscar opção..." autocomplete="off" />
+              </div>
+              <div class="creatable-options-list">
+                ${(field.options || [])
+                  .map(
+                    (opt) =>
+                      `<div class="creatable-option${opt === value ? " selected" : ""}" data-value="${escapeAttr(opt)}">${escapeHtml(opt)}</div>`,
+                  )
+                  .join("")}
+              </div>
             </div>
           </div>`;
             }
@@ -7180,25 +7215,70 @@
           inputEl.addEventListener("input", updateValue);
           inputEl.addEventListener("change", updateValue);
 
-          // Creatable dropdown behavior
+          // Creatable dropdown behavior (v2)
           if (isCreatable) {
             const dropdown = el.querySelector(".creatable-dropdown");
+            const searchInput = el.querySelector(".creatable-search-input");
+            const chevron = el.querySelector(".creatable-chevron");
             const options = el.querySelectorAll(".creatable-option");
 
+            // Chevron click: toggle dropdown
+            if (chevron) {
+              chevron.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const isOpen = dropdown.classList.contains("open");
+                if (isOpen) {
+                  dropdown.classList.remove("open");
+                } else {
+                  dropdown.classList.add("open");
+                  if (searchInput) {
+                    searchInput.value = "";
+                    filterOptions(el); // Reset filter to show all
+                    // Delay focus to prevent immediate blur event
+                    setTimeout(() => searchInput.focus(), 10);
+                  }
+                }
+              });
+            }
+
+            // Main input: allow typing to open + filter, or click to open
             inputEl.addEventListener("focus", () => {
               dropdown.classList.add("open");
-              filterOptions(el);
+              if (searchInput) {
+                searchInput.value = "";
+                filterOptions(el);
+                setTimeout(() => searchInput.focus(), 50);
+              }
             });
 
             inputEl.addEventListener("input", () => {
               dropdown.classList.add("open");
-              filterOptions(el);
+              if (searchInput) {
+                searchInput.value = inputEl.value;
+                filterOptions(el);
+              }
             });
 
+            // Search input: filter as you type
+            if (searchInput) {
+              searchInput.addEventListener("input", () => {
+                filterOptions(el);
+              });
+              searchInput.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                  dropdown.classList.remove("open");
+                  inputEl.focus();
+                }
+              });
+            }
+
+            // Options: click to select
             options.forEach((opt) => {
               opt.addEventListener("mousedown", (e) => {
                 e.preventDefault(); // Prevent blur before click registers
-                inputEl.value = opt.getAttribute("data-value");
+                const selectedValue = opt.getAttribute("data-value");
+                inputEl.value = selectedValue;
                 updateValue();
                 dropdown.classList.remove("open");
                 // Update selected state
@@ -7207,9 +7287,36 @@
               });
             });
 
+            // Close on blur (but give time for mousedown on options)
+            let blurTimeout = null;
             inputEl.addEventListener("blur", () => {
-              setTimeout(() => dropdown.classList.remove("open"), 150);
+              blurTimeout = setTimeout(() => {
+                // Only close if neither search input nor any dropdown element has focus
+                const activeEl = document.activeElement;
+                const dropdownHasFocus = dropdown.contains(activeEl);
+                if (!dropdownHasFocus) {
+                  dropdown.classList.remove("open");
+                }
+              }, 200);
             });
+            inputEl.addEventListener("focus", () => {
+              if (blurTimeout) clearTimeout(blurTimeout);
+            });
+            if (searchInput) {
+              searchInput.addEventListener("blur", () => {
+                blurTimeout = setTimeout(() => {
+                  const activeEl = document.activeElement;
+                  const isInputFocused = activeEl === inputEl;
+                  const dropdownHasFocus = dropdown.contains(activeEl);
+                  if (!isInputFocused && !dropdownHasFocus) {
+                    dropdown.classList.remove("open");
+                  }
+                }, 200);
+              });
+              searchInput.addEventListener("focus", () => {
+                if (blurTimeout) clearTimeout(blurTimeout);
+              });
+            }
           }
         });
 
@@ -7966,8 +8073,11 @@
       }
 
       function filterOptions(container) {
-        const input = container.querySelector(".creatable-input");
-        const val = input.value.toLowerCase().trim();
+        // v2: read from search input, not from main input
+        const searchInput = container.querySelector(".creatable-search-input");
+        const val = searchInput
+          ? searchInput.value.toLowerCase().trim()
+          : "";
         container.querySelectorAll(".creatable-option").forEach((opt) => {
           const text = (opt.getAttribute("data-value") || "").toLowerCase();
           if (!val || text.includes(val)) {

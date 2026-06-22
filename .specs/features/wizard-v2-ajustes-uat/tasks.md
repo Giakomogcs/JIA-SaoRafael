@@ -1,7 +1,7 @@
 # Wizard V2 — Ajustes pós-UAT — Tasks
 
 **Design**: [design.md](design.md) · **Spec**: [spec.md](spec.md) · **Context**: [context.md](context.md)  
-**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3-6 em progresso
+**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3 Completa (T14 ✅) | Fase 4-6 em progresso
 
 > **Sem suíte automatizada.** Não existe `.specs/codebase/TESTING.md` nem framework de testes —
 > [front.html](../../../front.html) é um SPA single-file. **Gate = verificação manual no navegador**
@@ -195,15 +195,15 @@ T20 [vínculo N→1] ──→ T21 [filtro histórico]
 
 ### Fase 3 — Creatable
 
-#### T14: Creatable v2 — busca separada + destrava
+#### T14: Creatable v2 — busca separada + destrava — ✅ DONE
 **What**: Refatorar o componente creatable: input de valor separado de um campo de busca dentro do dropdown; chevron clicável reabre lista completa; `filterOptions` lê da busca; valor selecionado nunca filtra a lista.
 **Where**: render [front.html#L6786-L6806](../../../front.html#L6786); handlers [#L7172-L7205](../../../front.html#L7172); `filterOptions` [#L7897](../../../front.html#L7897); CSS [#L1576-L1644](../../../front.html#L1576).
 **Depends on**: None · **Requirement**: CREAT-01 (e resolve a "trava" do FAT-01)
 **Done when**:
-- [ ] Abrir um creatable mostra TODAS as opções mesmo com valor selecionado.
-- [ ] Campo de busca separado filtra a lista.
-- [ ] Clicar no chevron com valor preenchido reabre e permite trocar.
-- [ ] Regressão OK em: origem_contato, prazo_pagamento, exigencia_faturamento, comprimento, largura, altura, horario_entrega.
+- [x] Abrir um creatable mostra TODAS as opções mesmo com valor selecionado.
+- [x] Campo de busca separado filtra a lista.
+- [x] Clicar no chevron com valor preenchido reabre e permite trocar.
+- [x] Regressão OK em: origem_contato, prazo_pagamento, exigencia_faturamento, comprimento, largura, altura, horario_entrega.
 **Tests**: manual · **Gate**: smoke (testar os 7 campos acima)
 
 ---
