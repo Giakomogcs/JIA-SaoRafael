@@ -1,7 +1,7 @@
 # Wizard V2 — Ajustes pós-UAT — Tasks
 
 **Design**: [design.md](design.md) · **Spec**: [spec.md](spec.md) · **Context**: [context.md](context.md)  
-**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2-6 em progresso
+**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3-6 em progresso
 
 > **Sem suíte automatizada.** Não existe `.specs/codebase/TESTING.md` nem framework de testes —
 > [front.html](../../../front.html) é um SPA single-file. **Gate = verificação manual no navegador**
@@ -170,25 +170,25 @@ T20 [vínculo N→1] ──→ T21 [filtro histórico]
 
 ### Fase 2 — Isolados
 
-#### T11: Máscara de telefone internacional `maskPhoneIntl`
+#### T11: Máscara de telefone internacional `maskPhoneIntl` — ✅ DONE
 **What**: Criar `maskPhoneIntl()` (`+55 (11) 94117-4182`, DDI default 55 editável) e ligar a `contato_telefone`.
 **Where**: novo perto de [front.html#L8802](../../../front.html#L8802); binding em [#L3592](../../../front.html#L3592) e handlers de input.
 **Depends on**: None · **Requirement**: MASK-01
-**Done when**: [ ] `11941174182` vira `+55 (11) 94117-4182`; [ ] DDI editável; [ ] incompleto sinaliza borda no blur sem bloquear.
+**Done when**: [x] `11941174182` vira `+55 (11) 94117-4182`; [x] DDI editável; [x] incompleto sinaliza borda no blur sem bloquear.
 **Tests**: manual · **Gate**: smoke
 
-#### T12: Finalidade "Diversos"
+#### T12: Finalidade "Diversos" — ✅ DONE
 **What**: Adicionar `diversos` a `RC_USO_LABELS`, `RC_USO_TEMP_RANGES` (espelha `outros` -40..15), `RC_STORAGE_DENSITY` (250) e à opção do select de finalidade.
 **Where**: [front.html#L15445-L15486](../../../front.html#L15445) e select [#L13881](../../../front.html#L13881)
 **Depends on**: None · **Requirement**: FIN-01
-**Done when**: [ ] "Diversos" no select; [ ] não gera crítica de incompatibilidade térmica.
+**Done when**: [x] "Diversos" no select; [x] não gera crítica de incompatibilidade térmica.
 **Tests**: manual · **Gate**: smoke
 
-#### T13: Pergunta do Local de Instalação
+#### T13: Pergunta do Local de Instalação — ✅ DONE
 **What**: Inverter o texto/semântica do radio para "O local de instalação é o mesmo do endereço acima?" (Sim = mesmo).
 **Where**: render do `local-instalacao-box` [front.html#L7028+](../../../front.html#L7028) e lógica `local_instalacao_diferente`.
 **Depends on**: None · **Requirement**: LBL-04
-**Done when**: [ ] Pergunta nova; [ ] "Sim" mantém o mesmo endereço; [ ] "Não" abre os campos; [ ] resumo correto.
+**Done when**: [x] Pergunta nova; [x] "Sim" mantém o mesmo endereço; [x] "Não" abre os campos; [x] resumo correto.
 **Tests**: manual · **Gate**: smoke
 
 ---

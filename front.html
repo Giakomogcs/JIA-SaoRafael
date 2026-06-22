@@ -3642,10 +3642,12 @@
             },
             contato_telefone: {
               label: "Telefone do Contato",
-              type: "text",
+              type: "tel",
               required: true,
-              pattern: "^\\(?\\d{2}\\)?\\s?\\d{4,5}-?\\d{4}$",
-              patternMsg: "Ex: (11) 99999-9999",
+              maxLength: 25,
+              hint: "Ex: +55 (11) 94117-4182 (DDI editável)",
+              tag: "PLANILHA",
+              mask: "phone-intl",
             },
             contato_email: {
               label: "E-mail do Contato",
@@ -6757,7 +6759,8 @@
 
         switch (field.type) {
           case "text":
-            html += `<input type="text" class="form-input${hasError ? " error" : ""}" 
+          case "tel":
+            html += `<input type="${field.type === "tel" ? "tel" : "text"}" class="form-input${hasError ? " error" : ""}" 
             ${dataAttr} value="${escapeAttr(value)}" 
             placeholder="${field.patternMsg || ""}" />`;
             break;
@@ -6901,14 +6904,14 @@
             html += `<div class="local-instalacao-box" ${dataAttr} style="border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;background:var(--bg-tertiary,rgba(0,0,0,0.02));">
               <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text-primary);">
                 <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--color-primary);"></i>
-                Local de instalação é diferente do endereço acima?
+                O local de instalação é o mesmo do endereço acima?
               </div>
               <div style="display:flex;gap:18px;margin-bottom:10px;">
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                  <input type="radio" name="li_dif_${stepKey}" value="nao" ${liDiferente === "nao" ? "checked" : ""} /> Não (usar o mesmo)
+                  <input type="radio" name="li_dif_${stepKey}" value="nao" ${liDiferente === "nao" ? "checked" : ""} /> Sim (mesmo endereço)
                 </label>
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                  <input type="radio" name="li_dif_${stepKey}" value="sim" ${liDiferente === "sim" ? "checked" : ""} /> Sim, informar outro endereço
+                  <input type="radio" name="li_dif_${stepKey}" value="sim" ${liDiferente === "sim" ? "checked" : ""} /> Não (outro endereço)
                 </label>
               </div>
               <div class="li-resumo-mesmo" style="display:${liDiferente === "nao" ? "block" : "none"};font-size:12px;color:var(--text-secondary);background:rgba(14,165,233,0.06);border-left:3px solid var(--color-info,#0ea5e9);padding:8px 12px;border-radius:6px;">
@@ -7658,6 +7661,34 @@
             prazoInput.addEventListener("change", toggleOutrosField);
             // Initial state on render
             toggleOutrosField();
+          }
+
+          // CONTATO_TELEFONE international phone mask
+          const telefoneContainer = panel.querySelector(
+            '[data-field-name="contato_telefone"]',
+          );
+          if (telefoneContainer) {
+            const telefoneInput =
+              telefoneContainer.tagName === "INPUT"
+                ? telefoneContainer
+                : telefoneContainer.querySelector("input");
+            if (telefoneInput) {
+              telefoneInput.addEventListener("input", (e) => {
+                const raw = e.target.value;
+                const masked = maskPhoneIntl(raw);
+                if (masked !== raw) {
+                  e.target.value = masked;
+                  formData[stepKey]["contato_telefone"] = masked;
+                  saveToStorage();
+                }
+              });
+              // Apply mask on initial render if value exists
+              if (formData[stepKey]["contato_telefone"]) {
+                telefoneInput.value = maskPhoneIntl(
+                  formData[stepKey]["contato_telefone"],
+                );
+              }
+            }
           }
         }
 
@@ -8810,6 +8841,42 @@
         } else {
           uiAlert("Falha ao excluir sessão.", { variant: "error" });
         }
+      }
+
+      /**
+       * maskPhoneIntl — Máscara internacional de telefone com DDI editável.
+       * Formato: +55 (11) 94117-4182
+       * @param {string} raw — dígitos brutos (ex: "11941174182" ou "+5511941174182")
+       * @returns {string} — string formatada
+       */
+      function maskPhoneIntl(raw) {
+        if (!raw) return "";
+        // Strip tudo exceto dígitos e o +
+        let clean = raw.replace(/[^\d+]/g, "");
+        // Se começar com +, preserva; senão assume +55
+        if (!clean.startsWith("+")) {
+          clean = "+55" + clean;
+        }
+        // Extrai DDI (prioriza +55 Brasil, senão pega até 3 dígitos)
+        let ddi, rest;
+        if (clean.startsWith("+55")) {
+          ddi = "+55";
+          rest = clean.slice(3);
+        } else {
+          const match = clean.match(/^(\+\d{1,3})(.*)$/);
+          if (!match) return clean;
+          ddi = match[1];
+          rest = match[2];
+        }
+        // Formata o resto como (DD) NNNNN-NNNN (Brasil) ou similar
+        if (rest.length === 0) return ddi + " ";
+        if (rest.length <= 2) return `${ddi} (${rest}`;
+        if (rest.length <= 7) return `${ddi} (${rest.slice(0, 2)}) ${rest.slice(2)}`;
+        // 10-11 dígitos = (DD) NNNNN-NNNN ou (DD) NNNN-NNNN
+        const ddd = rest.slice(0, 2);
+        const firstPart = rest.slice(2, rest.length - 4);
+        const lastPart = rest.slice(-4);
+        return `${ddi} (${ddd}) ${firstPart}-${lastPart}`;
       }
 
       function startNewSession() {
@@ -15494,6 +15561,7 @@
         farmacia_caixa: 250,
         flores: 80,
         outros: 250,
+        diversos: 250,
       };
       const RC_USO_LABELS = {
         carne_carcaca: "Carne em carcaça (pendurada)",
@@ -15507,6 +15575,7 @@
         farmacia_caixa: "Farmacêutico/medicamentos",
         flores: "Flores",
         outros: "Outros",
+        diversos: "Diversos",
       };
 
       // Faixa térmica recomendada por categoria (°C). `ideal` = janela ótima;
@@ -15523,6 +15592,7 @@
         farmacia_caixa: { min: 2, max: 15, ideal: [4, 8] },
         flores: { min: 2, max: 12, ideal: [4, 8] },
         outros: { min: -40, max: 15, ideal: [-40, 15] },
+        diversos: { min: -40, max: 15, ideal: [-40, 15] },
       };
 
       // Palavras-chave por categoria, para inferir a categoria provável
