@@ -3583,6 +3583,12 @@
               minLength: 3,
               tag: "PLANILHA",
             },
+            nome_fantasia: {
+              label: "Nome Fantasia",
+              type: "text",
+              required: false,
+              minLength: 2,
+            },
             cnpj_cpf: {
               label: "CNPJ / CPF",
               type: "text",
@@ -3595,6 +3601,12 @@
               label: "Inscrição Estadual",
               type: "text",
               required: false,
+            },
+            contribuinte_icms: {
+              label: "Contribuinte de ICMS",
+              type: "select",
+              required: false,
+              options: ["Sim", "Não"],
             },
             cep: {
               label: "CEP",
@@ -3701,14 +3713,14 @@
             transportadora_nome: {
               label: "Nome da Transportadora",
               type: "text",
-              required: true,
+              required: false,
               hidden: true,
               tag: "PLANILHA",
             },
             transportadora_telefone: {
               label: "Telefone da Transportadora",
               type: "tel",
-              required: true,
+              required: false,
               hidden: true,
               tag: "PLANILHA",
             },
@@ -4831,9 +4843,12 @@
             const snap = getChamberSnapshot();
             const comps = rcComputeCompartments(snap);
             if (comps.length > 1) {
-              const ids = new Set(
-                portas.map((p) => p.compartimento_id).filter(Boolean),
-              );
+              const ids = new Set();
+              portas.forEach((p) => {
+                if (p.compartimento_id) ids.add(p.compartimento_id);
+                if (p.compartimento_destino_id)
+                  ids.add(p.compartimento_destino_id);
+              });
               comps.forEach((c) => {
                 if (!ids.has(c.name)) {
                   portaErrors._array = portaErrors._array || [];
@@ -10531,6 +10546,11 @@
             const tag = p.compartimento_id
               ? `${p.compartimento_id}`
               : `Porta ${i + 1}`;
+            if (p.compartimento_destino_id)
+              portas.push([
+                `${tag} · Liga compartimentos`,
+                `${p.compartimento_id || "?"} ↔ ${p.compartimento_destino_id}`,
+              ]);
             if (p.tipo) portas.push([`${tag} · Tipo`, p.tipo]);
             if (p.largura) portas.push([`${tag} · Largura`, p.largura + "mm"]);
             if (p.altura) portas.push([`${tag} · Altura`, p.altura + "mm"]);
@@ -11127,6 +11147,11 @@
         if (portasArr.length > 0) {
           portasArr.forEach((p, i) => {
             const tag = p.compartimento_id || `Porta ${i + 1}`;
+            if (p.compartimento_destino_id)
+              acc.push([
+                `${tag} · Liga compartimentos`,
+                `${p.compartimento_id || "?"} ↔ ${p.compartimento_destino_id}`,
+              ]);
             if (p.tipo) acc.push([`${tag} · Tipo`, p.tipo]);
             if (p.largura) acc.push([`${tag} · Largura`, p.largura + "mm"]);
             if (p.altura) acc.push([`${tag} · Altura`, p.altura + "mm"]);
@@ -12566,6 +12591,7 @@
         if (Array.isArray(s4.portas) && s4.portas.length > 0) {
           portas = s4.portas.map((p) => ({
             compartimento_id: p.compartimento_id || "",
+            compartimento_destino_id: p.compartimento_destino_id || "",
             tipo: p.tipo || "",
             largMm: parseFloat(p.largura) || 0,
             altMm: parseFloat(p.altura) || 0,
@@ -13037,6 +13063,61 @@
               typeof _doorStyleFor === "function"
                 ? _doorStyleFor(porta.tipo)
                 : { color: "#dc2626", icon: "🚪", label: "Porta" };
+
+            // ---- INTERNAL DOOR (porta de passagem entre dois compartimentos) ----
+            if (porta.compartimento_destino_id) {
+              const ocI = allComps.find(
+                (c) => c.name === porta.compartimento_id,
+              );
+              const dcI = allComps.find(
+                (c) => c.name === porta.compartimento_destino_id,
+              );
+              const swI =
+                ocI && dcI && typeof _sharedWallGeom === "function"
+                  ? _sharedWallGeom(ocI, dcI)
+                  : null;
+              if (swI) {
+                const segLenM = Math.max(0, swI.to - swI.from);
+                const halfDoorM = porta.largMm / 1000 / 2;
+                const centerLocal = pct * segLenM;
+                const centerM =
+                  swI.from +
+                  Math.min(
+                    Math.max(centerLocal, halfDoorM),
+                    Math.max(halfDoorM, segLenM - halfDoorM),
+                  );
+                const strokeI = "#334155";
+                let dx, dy, dw, dh, horiz;
+                if (swI.orientation === "vertical") {
+                  const xPx = oX + wallPx + swI.pos * scale;
+                  const yPx = oY + wallPx + centerM * scale;
+                  dw = Math.max(4, wallPx + 2);
+                  dh = doorWPx;
+                  dx = xPx - dw / 2;
+                  dy = yPx - dh / 2;
+                  horiz = false;
+                } else {
+                  const yPx = oY + wallPx + swI.pos * scale;
+                  const xPx = oX + wallPx + centerM * scale;
+                  dh = Math.max(4, wallPx + 2);
+                  dw = doorWPx;
+                  dx = xPx - dw / 2;
+                  dy = yPx - dh / 2;
+                  horiz = true;
+                }
+                const linkTag = `${svgEsc(porta.compartimento_id)} ↔ ${svgEsc(porta.compartimento_destino_id)}`;
+                svg += `<rect x="${dx.toFixed(2)}" y="${dy.toFixed(2)}" width="${dw.toFixed(2)}" height="${dh.toFixed(2)}" fill="${style.color}" stroke="${strokeI}" stroke-width="0.9" rx="1"><title>Porta de passagem ${linkTag} · ${svgEsc(porta.tipo)} ${porta.largMm}×${porta.altMm}mm @ ${porta.posPct}%</title></rect>`;
+                // White dashed centre line → reads as an opening/passage
+                if (horiz) {
+                  svg += `<line x1="${(dx + dw / 2).toFixed(2)}" y1="${dy.toFixed(2)}" x2="${(dx + dw / 2).toFixed(2)}" y2="${(dy + dh).toFixed(2)}" stroke="#fff" stroke-width="0.7" stroke-dasharray="2,1"/>`;
+                } else {
+                  svg += `<line x1="${dx.toFixed(2)}" y1="${(dy + dh / 2).toFixed(2)}" x2="${(dx + dw).toFixed(2)}" y2="${(dy + dh / 2).toFixed(2)}" stroke="#fff" stroke-width="0.7" stroke-dasharray="2,1"/>`;
+                }
+                svg += `<text x="${(dx + dw / 2).toFixed(2)}" y="${(dy - 3).toFixed(2)}" text-anchor="middle" font-size="7.5" font-weight="700" fill="${strokeI}">${svgEsc(porta.compartimento_id)}↔${svgEsc(porta.compartimento_destino_id)}</text>`;
+              }
+              return; // internal door fully drawn — skip perimeter logic
+            }
+
             const wallId = porta.parede.toLowerCase();
             // Compartment that owns this door (if any) — clamps door to its perimeter segment
             const ownComp = porta.compartimento_id
@@ -13653,6 +13734,7 @@
         if (Array.isArray(s4.portas) && s4.portas.length > 0) {
           portas = s4.portas.map((p) => ({
             compartimento_id: p.compartimento_id || "",
+            compartimento_destino_id: p.compartimento_destino_id || "",
             tipo: p.tipo || "",
             largMm: parseFloat(p.largura) || 0,
             altMm: parseFloat(p.altura) || 0,
@@ -14554,17 +14636,33 @@
         const equip = _getCompartmentEquipment(comp.name);
         const t = equip.temp;
         const allowedWalls = _perimeterWallsForCompartment(comp, snap);
+        const internalWalls = _sharedWallsForCompartment(comp, comps);
+        const allWallKeys = allowedWalls.concat(internalWalls.map((w) => w.key));
         const preset = opts.presetKey ? PORTA_PRESETS[opts.presetKey] : null;
+
+        // Selected internal wall (edit mode) — matched by destino compartment
+        const seededInternalWall =
+          existing && existing.compartimento_destino_id
+            ? internalWalls.find(
+                (w) => w.neighbor === existing.compartimento_destino_id,
+              ) || null
+            : null;
 
         // Seed state
         const state = {
           step: 1,
           totalSteps: 5,
           compartimento_id: comp.name,
+          compartimento_destino_id: seededInternalWall
+            ? seededInternalWall.neighbor
+            : "",
+          internalWall: seededInternalWall,
           parede:
-            existing?.parede && allowedWalls.includes(existing.parede)
+            existing?.parede && allWallKeys.includes(existing.parede)
               ? existing.parede
-              : "",
+              : seededInternalWall
+                ? seededInternalWall.key
+                : "",
           tipo: existing?.tipo || preset?.tipo || "",
           largura: existing?.largura || preset?.largura || "",
           altura: existing?.altura || preset?.altura || "",
@@ -14596,6 +14694,24 @@
             state.acessorios.push("Anti-Gelo Eletrônico");
           // Auto-pick wall if only one option
           if (allowedWalls.length === 1) state.parede = allowedWalls[0];
+        }
+
+        // Length (m) of the wall segment the door slides along.
+        // Internal door → the shared overlap; external door → the compartment side.
+        function _segLenForState() {
+          if (state.internalWall) {
+            return Math.max(
+              0,
+              state.internalWall.to - state.internalWall.from,
+            );
+          }
+          const wallId = (state.parede || "").toLowerCase();
+          return wallId.includes("norte") ||
+            wallId.includes("frontal") ||
+            wallId.includes("sul") ||
+            wallId.includes("posterior")
+            ? comp.x1 - comp.x0
+            : comp.y1 - comp.y0;
         }
 
         // Door type catalog with metadata
@@ -14851,6 +14967,7 @@
           // Build a snapshot with current state's draft porta on top, focusing on the compartment
           const draftPorta = {
             compartimento_id: comp.name,
+            compartimento_destino_id: state.compartimento_destino_id || "",
             tipo: state.tipo,
             largura: state.largura,
             altura: state.altura,
@@ -14866,6 +14983,7 @@
           // Convert to snapshot format
           const portasSnap = portasArr.map((p) => ({
             compartimento_id: p.compartimento_id || "",
+            compartimento_destino_id: p.compartimento_destino_id || "",
             tipo: p.tipo || "",
             largMm: parseFloat(p.largura) || 0,
             altMm: parseFloat(p.altura) || 0,
@@ -15016,22 +15134,59 @@
                   : "middle";
             svg += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="${stroke}" style="pointer-events:none;">${escapeHtml(label)}</text>`;
           });
+          // Highlight clickable INTERNAL walls (divisórias compartilhadas → porta de passagem)
+          internalWalls.forEach((w) => {
+            const isSelected = state.parede === w.key;
+            const stroke = isSelected ? "#ef4444" : "#8b5cf6";
+            const sw = isSelected ? 8 : 6;
+            let x1, y1, x2, y2;
+            if (w.orientation === "vertical") {
+              const px = oX + w.pos * scale;
+              x1 = px;
+              x2 = px;
+              y1 = oY + w.from * scale;
+              y2 = oY + w.to * scale;
+            } else {
+              const py = oY + w.pos * scale;
+              y1 = py;
+              y2 = py;
+              x1 = oX + w.from * scale;
+              x2 = oX + w.to * scale;
+            }
+            const mx = (x1 + x2) / 2,
+              my = (y1 + y2) / 2;
+            svg += `<line data-pw-wall="${escapeAttr(w.key)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="6,3" style="cursor:pointer;" opacity="0.9"><title>Porta de passagem para ${escapeHtml(w.neighbor)}</title></line>`;
+            svg += `<circle data-pw-wall="${escapeAttr(w.key)}" cx="${mx}" cy="${my}" r="${isSelected ? 9 : 7}" fill="${stroke}" style="cursor:pointer;"></circle>`;
+            svg += `<text x="${mx}" y="${my - 6}" text-anchor="middle" font-size="9" font-weight="700" fill="${stroke}" style="pointer-events:none;">→ ${escapeHtml(w.neighbor)}</text>`;
+          });
           svg += `</svg>`;
 
           let html = `<div style="text-align:center;margin-bottom:12px;">
             <h4 style="font-size:13px;font-weight:700;color:var(--text-primary);margin:0 0 4px 0;">🧱 Em qual parede do compartimento <span style="color:var(--color-primary);">${escapeHtml(comp.name)}</span>?</h4>
-            <div style="font-size:11px;color:var(--text-secondary);">Clique na parede verde do desenho — só estão habilitadas as paredes externas deste compartimento.</div>
+            <div style="font-size:11px;color:var(--text-secondary);">Verde = paredes externas · <span style="color:#8b5cf6;font-weight:700;">roxo tracejado</span> = divisórias internas (porta de passagem entre compartimentos).</div>
           </div>
           <div style="display:flex;justify-content:center;background:var(--bg-tertiary);border-radius:10px;padding:10px;">${svg}</div>`;
-          if (allowedWalls.length === 0) {
-            html += `<div style="margin-top:10px;padding:10px;background:rgba(239,68,68,0.1);border-left:3px solid var(--color-error);border-radius:6px;font-size:12px;color:var(--color-error);">⚠️ Este compartimento não toca nenhuma parede externa. Reorganize as divisórias para que ele tenha acesso ao exterior.</div>`;
+          if (allowedWalls.length === 0 && internalWalls.length === 0) {
+            html += `<div style="margin-top:10px;padding:10px;background:rgba(239,68,68,0.1);border-left:3px solid var(--color-error);border-radius:6px;font-size:12px;color:var(--color-error);">⚠️ Este compartimento não toca nenhuma parede externa nem outro compartimento. Reorganize as divisórias.</div>`;
           } else {
-            html += `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;">${allowedWalls
-              .map((w) => {
-                const sel = state.parede === w;
-                return `<button type="button" data-pw-wall-btn="${escapeAttr(w)}" style="padding:6px 12px;border-radius:6px;border:1px solid ${sel ? "var(--color-primary)" : "var(--border-color)"};background:${sel ? "var(--color-primary)" : "transparent"};color:${sel ? "#fff" : "var(--text-primary)"};font-size:11px;font-weight:600;cursor:pointer;">${escapeHtml(w.replace(/^Parede\s+/i, ""))}</button>`;
-              })
-              .join("")}</div>`;
+            if (allowedWalls.length > 0) {
+              html += `<div style="font-size:10px;color:var(--text-secondary);text-align:center;margin-top:10px;font-weight:600;">Paredes externas</div>`;
+              html += `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;">${allowedWalls
+                .map((w) => {
+                  const sel = state.parede === w;
+                  return `<button type="button" data-pw-wall-btn="${escapeAttr(w)}" style="padding:6px 12px;border-radius:6px;border:1px solid ${sel ? "var(--color-primary)" : "var(--border-color)"};background:${sel ? "var(--color-primary)" : "transparent"};color:${sel ? "#fff" : "var(--text-primary)"};font-size:11px;font-weight:600;cursor:pointer;">${escapeHtml(w.replace(/^Parede\s+/i, ""))}</button>`;
+                })
+                .join("")}</div>`;
+            }
+            if (internalWalls.length > 0) {
+              html += `<div style="font-size:10px;color:#8b5cf6;text-align:center;margin-top:10px;font-weight:700;">🔗 Portas de passagem (entre compartimentos)</div>`;
+              html += `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;">${internalWalls
+                .map((w) => {
+                  const sel = state.parede === w.key;
+                  return `<button type="button" data-pw-wall-btn="${escapeAttr(w.key)}" style="padding:6px 12px;border-radius:6px;border:1px solid ${sel ? "#8b5cf6" : "var(--border-color)"};background:${sel ? "#8b5cf6" : "transparent"};color:${sel ? "#fff" : "var(--text-primary)"};font-size:11px;font-weight:600;cursor:pointer;">${escapeHtml(comp.name)} → ${escapeHtml(w.neighbor)}</button>`;
+                })
+                .join("")}</div>`;
+            }
           }
           return html;
         }
@@ -15416,19 +15571,8 @@
 
         // ----- Step 5: Posição -----
         function renderStep5() {
-          // Position is % of the compartment's wall segment (0=start, 100=end)
-          let segLenM = 0;
-          const wallId = (state.parede || "").toLowerCase();
-          if (
-            wallId.includes("norte") ||
-            wallId.includes("frontal") ||
-            wallId.includes("sul") ||
-            wallId.includes("posterior")
-          ) {
-            segLenM = comp.x1 - comp.x0;
-          } else {
-            segLenM = comp.y1 - comp.y0;
-          }
+          // Position is % of the wall segment (0=start, 100=end)
+          const segLenM = _segLenForState();
           const doorWm = (parseFloat(state.largura) || 0) / 1000;
           const overflow = doorWm > segLenM;
           const cur = +state.posicao_pct;
@@ -15508,14 +15652,7 @@
           if (state.step === 4) return true;
           if (state.step === 5) {
             // Validate door fits the compartment segment
-            const wallId = (state.parede || "").toLowerCase();
-            const segLenM =
-              wallId.includes("norte") ||
-              wallId.includes("frontal") ||
-              wallId.includes("sul") ||
-              wallId.includes("posterior")
-                ? comp.x1 - comp.x0
-                : comp.y1 - comp.y0;
+            const segLenM = _segLenForState();
             const doorWm = (parseFloat(state.largura) || 0) / 1000;
             return doorWm <= segLenM;
           }
@@ -15553,8 +15690,11 @@
                 const w =
                   el.getAttribute("data-pw-wall") ||
                   el.getAttribute("data-pw-wall-btn");
-                if (allowedWalls.includes(w)) {
+                if (allWallKeys.includes(w)) {
                   state.parede = w;
+                  const iw = internalWalls.find((x) => x.key === w);
+                  state.internalWall = iw || null;
+                  state.compartimento_destino_id = iw ? iw.neighbor : "";
                   renderAll();
                 }
               });
@@ -15636,14 +15776,7 @@
           const range = overlay.querySelector("#pwPosRange");
           const pct = overlay.querySelector("#pwPosPct");
           const mEl = overlay.querySelector("#pwPosM");
-          const wallId2 = (state.parede || "").toLowerCase();
-          const segLenM =
-            wallId2.includes("norte") ||
-            wallId2.includes("frontal") ||
-            wallId2.includes("sul") ||
-            wallId2.includes("posterior")
-              ? comp.x1 - comp.x0
-              : comp.y1 - comp.y0;
+          const segLenM = _segLenForState();
 
           // Live update without rebuilding the slider (which would break dragging).
           const headerSpan = overlay.querySelector("#pwPosHeader");
@@ -15686,6 +15819,9 @@
         function save() {
           const novaPorta = {
             compartimento_id: state.compartimento_id,
+            compartimento_destino_id: state.internalWall
+              ? state.compartimento_destino_id || ""
+              : "",
             tipo: state.tipo,
             largura: state.largura,
             altura: state.altura,
@@ -17699,6 +17835,53 @@
         return fresh[0] || walls[0];
       }
 
+      // Internal (shared) walls between `comp` and its neighbours.
+      // A door placed on one of these connects two compartments (porta de passagem).
+      // Returns descriptors: { key, neighbor, side, orientation, pos, from, to }
+      //   orientation 'vertical'   → wall is a constant-x line, runs along Y (segment from..to in Y)
+      //   orientation 'horizontal' → wall is a constant-y line, runs along X (segment from..to in X)
+      function _sharedWallsForCompartment(comp, comps) {
+        const out = [];
+        if (!comp || !Array.isArray(comps)) return out;
+        const tol = 0.06;
+        const seen = new Set();
+        comps.forEach((o) => {
+          if (!o || o.name === comp.name) return;
+          // Vertical shared wall (constant x) — neighbour to the left/right
+          const yFrom = Math.max(comp.y0, o.y0);
+          const yTo = Math.min(comp.y1, o.y1);
+          if (yTo - yFrom > tol) {
+            if (Math.abs(comp.x1 - o.x0) < tol && !seen.has(o.name)) {
+              seen.add(o.name);
+              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "right", orientation: "vertical", pos: comp.x1, from: yFrom, to: yTo });
+            } else if (Math.abs(comp.x0 - o.x1) < tol && !seen.has(o.name)) {
+              seen.add(o.name);
+              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "left", orientation: "vertical", pos: comp.x0, from: yFrom, to: yTo });
+            }
+          }
+          // Horizontal shared wall (constant y) — neighbour above/below
+          const xFrom = Math.max(comp.x0, o.x0);
+          const xTo = Math.min(comp.x1, o.x1);
+          if (xTo - xFrom > tol) {
+            if (Math.abs(comp.y1 - o.y0) < tol && !seen.has(o.name)) {
+              seen.add(o.name);
+              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "bottom", orientation: "horizontal", pos: comp.y1, from: xFrom, to: xTo });
+            } else if (Math.abs(comp.y0 - o.y1) < tol && !seen.has(o.name)) {
+              seen.add(o.name);
+              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "top", orientation: "horizontal", pos: comp.y0, from: xFrom, to: xTo });
+            }
+          }
+        });
+        return out;
+      }
+
+      // Geometry of the wall shared by compartments a & b (used by the planta drawing).
+      function _sharedWallGeom(a, b) {
+        if (!a || !b) return null;
+        const walls = _sharedWallsForCompartment(a, [b]);
+        return walls.length > 0 ? walls[0] : null;
+      }
+
       function _getEstantePerComp(compName) {
         if (!formData.step4) formData.step4 = {};
         if (
@@ -19261,7 +19444,15 @@
           const validIds = new Set(comps.map((c) => c.name));
           for (let i = arr.length - 1; i >= 0; i--) {
             const id = arr[i].compartimento_id;
-            if (id && !validIds.has(id)) arr.splice(i, 1);
+            if (id && !validIds.has(id)) {
+              arr.splice(i, 1);
+              continue;
+            }
+            // Internal door whose destination no longer exists → drop the link
+            const dest = arr[i].compartimento_destino_id;
+            if (dest && !validIds.has(dest)) {
+              arr[i].compartimento_destino_id = "";
+            }
           }
         }
 
@@ -19351,6 +19542,7 @@
                 <div style="display:flex;flex-direction:column;gap:2px;">
                   <strong style="font-size:13px;">${escapeHtml(p.tipo || "— configurar —")}</strong>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;color:var(--text-secondary);">
+                    ${p.compartimento_destino_id ? `<span style="background:#8b5cf622;color:#8b5cf6;padding:1px 6px;border-radius:8px;font-weight:700;">🔗 ${escapeHtml(p.compartimento_id || "")}↔${escapeHtml(p.compartimento_destino_id)}</span>` : ""}
                     <span>📏 ${dimTxt}</span>
                     <span>🧱 ${escapeHtml(paredeTxt)}</span>
                     ${sentidoTxt ? `<span>↔️ ${escapeHtml(sentidoTxt)}</span>` : ""}
