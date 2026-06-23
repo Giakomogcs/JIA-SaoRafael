@@ -6812,6 +6812,10 @@
         bindFieldEvents(stepKey, stepSchema);
         if (stepKey === "step4") bindPortasEvents();
         if (stepKey === "step4") bindStep4AcessoriosChips();
+        // T16: Inject external dimension hints after step3 render
+        if (stepKey === "step3") {
+          requestAnimationFrame(() => updateExternalDimensionHints());
+        }
         bindClearStepButton(stepKey);
         updateNavButtons();
         renderStepIndicator();
@@ -7210,6 +7214,47 @@
         });
       }
 
+      // === T16: External dimension hints (dynamic) ===
+      function updateExternalDimensionHints() {
+        if (currentStep !== 3) return;
+        const panel = document.getElementById("stepPanels");
+        if (!panel) return;
+        const s3 = formData.step3 || {};
+        const comp = parseFloat(s3.comprimento);
+        const larg = parseFloat(s3.largura);
+        const alt = parseFloat(s3.altura);
+        const esp = parseFloat(s3.espessura_painel) || 0;
+        const espM = esp / 1000;
+
+        const dims = [
+          { name: "comprimento", val: comp, extFn: (v, e) => v + 2 * e },
+          { name: "largura", val: larg, extFn: (v, e) => v + 2 * e },
+          { name: "altura", val: alt, extFn: (v, e) => v + e },
+        ];
+
+        dims.forEach(({ name, val, extFn }) => {
+          const fieldGroup = panel.querySelector(`[data-field-name="${name}"]`)?.closest(".form-group");
+          if (!fieldGroup) return;
+
+          let hintEl = fieldGroup.querySelector(`#extHint_${name}`);
+          if (!hintEl) {
+            hintEl = document.createElement("span");
+            hintEl.id = `extHint_${name}`;
+            hintEl.className = "field-hint";
+            hintEl.style.cssText = "color:var(--color-info);font-style:normal;font-weight:500;margin-left:8px;";
+            fieldGroup.appendChild(hintEl);
+          }
+
+          if (val > 0 && esp > 0) {
+            const ext = extFn(val, espM);
+            hintEl.textContent = `↗ Externa ≈ ${ext.toFixed(3)} m`;
+            hintEl.style.display = "";
+          } else {
+            hintEl.style.display = "none";
+          }
+        });
+      }
+
       function bindFieldEvents(stepKey, stepSchema) {
         const panel = document.getElementById("stepPanels");
 
@@ -7273,6 +7318,12 @@
               if (c > 0 && l > 0 && a > 0 && !vizExists) {
                 renderCurrentStep();
               }
+              // T16: Update external hints on dimension change
+              updateExternalDimensionHints();
+            }
+            // T16: Update external hints when espessura changes
+            if (stepKey === "step3" && fieldName === "espessura_painel") {
+              updateExternalDimensionHints();
             }
           };
 
@@ -10216,6 +10267,9 @@
                 <option value="completed">✅ Concluído</option>
                 <option value="error">❌ Erro</option>
               </select>
+              <select id="filterClient" onchange="applySubmissionFilters()" style="padding:8px 12px;border:2px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--bg-input);color:var(--text-primary);min-width:140px;">
+                <option value="">Todos Clientes</option>
+              </select>
               <input type="text" id="filterSearch" onkeyup="applySubmissionFilters()" placeholder="Buscar protocolo, cliente, vendedor..." style="flex:1;min-width:180px;padding:8px 12px;border:2px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--bg-input);color:var(--text-primary);">
               <input type="date" id="filterDateFrom" onchange="applySubmissionFilters()" title="Data inicial" style="padding:8px 10px;border:2px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--bg-input);color:var(--text-primary);">
               <input type="date" id="filterDateTo" onchange="applySubmissionFilters()" title="Data final" style="padding:8px 10px;border:2px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--bg-input);color:var(--text-primary);">
@@ -10295,6 +10349,8 @@
           if (error) throw error;
           allSubmissions = data || [];
           renderSubmissionsTable(allSubmissions);
+          // T21: Populate client filter dropdown with unique clients
+          if (isAdmin()) populateClientFilter(allSubmissions);
         } catch (err) {
           contentEl.innerHTML =
             '<p style="color:var(--color-error);">Erro ao carregar orçamentos: ' +
@@ -10303,8 +10359,30 @@
         }
       }
 
+      // T21: Populate client filter dropdown from loaded submissions
+      function populateClientFilter(submissions) {
+        const sel = document.getElementById("filterClient");
+        if (!sel) return;
+        const currentVal = sel.value;
+        const clientMap = new Map();
+        submissions.forEach((s) => {
+          const fd = s.form_data || {};
+          const cid = s.client_id || fd._client_id;
+          if (!cid) return;
+          const name = fd.step2?.razao_social || cid;
+          if (!clientMap.has(cid)) clientMap.set(cid, name);
+        });
+        sel.innerHTML = '<option value="">Todos Clientes</option>';
+        [...clientMap.entries()]
+          .sort((a, b) => a[1].localeCompare(b[1]))
+          .forEach(([id, name]) => {
+            sel.innerHTML += `<option value="${escapeAttr(id)}" ${id === currentVal ? "selected" : ""}>${escapeHtml(name)}</option>`;
+          });
+      }
+
       function applySubmissionFilters() {
         const status = document.getElementById("filterStatus")?.value || "";
+        const clientId = document.getElementById("filterClient")?.value || "";
         const search = (
           document.getElementById("filterSearch")?.value || ""
         ).toLowerCase();
@@ -10315,6 +10393,13 @@
 
         if (status) {
           filtered = filtered.filter((s) => s.status === status);
+        }
+        // T21: Filter by client
+        if (clientId) {
+          filtered = filtered.filter((s) => {
+            const fd = s.form_data || {};
+            return s.client_id === clientId || fd._client_id === clientId;
+          });
         }
         if (search) {
           filtered = filtered.filter((s) => {

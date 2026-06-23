@@ -239,7 +239,7 @@ Sua resposta DEVE ser **EXCLUSIVAMENTE** um JSON válido (sem texto antes/depois
 - Fluido em phase-out (R-507A, R-404A) — funciona, mas alertar disponibilidade futura
 - Espessura no limite mínimo (75mm para -5°C) — funciona, sugerir 100mm
 - Tipo de degelo subótimo mas funcional (Elétrico em -25°C onde Gás Quente seria melhor)
-- Comissão > 10%, prazo de pagamento incomum, transporte exigente
+- Comissão (soma RT indicação + RT dificuldade) > 10%, prazo de pagamento incomum, transporte exigente
 - Tensão atípica para o compressor escolhido mas existente no mercado (Hermético 440V)
 - Setpoints próximos do limite da faixa do tipo_produto
 
@@ -288,7 +288,7 @@ Comece em **score = 0** e some os pontos dos fatores presentes nos dados consoli
 
 | Fator | Pontos | Identificador |
 |-------|--------|---------------|
-| Soma `comissao_vendedor` + `comissao_representante` > 15% | +5 | `margem_apertada` |
+| Soma `comissao_vendedor` + `comissao_representante` > 10% | +5 | `margem_apertada` |
 | `prazo_pagamento` = "Especial" ou "Entrada+Parcelas" | +4 | `financeiro_customizado` |
 | `prazo_pagamento` = "À Vista" + projeto técnico (>R$ 150k típico) | +3 | `pagamento_incomum` |
 
@@ -354,8 +354,9 @@ Marque `true` quando QUALQUER um destes for verdadeiro (mesmo que score < 70):
 **Validações**:
 
 - `tipo_produto` define TUDO: temperaturas aceitáveis, espessuras mínimas, dimensões
-- `comissao_representante`: 0-15%. Acima de 10% → 🟡 alertar que é alto
-- `comissao_vendedor` + `comissao_representante` > 15% → � margem baixa (alerta, NÃO bloqueia — alinhado com RAG doc 02 Soft Rules)
+- `comissao_representante` (RT de indicação): 0-5%. Acima de 5% → 🔴 fora do limite aceitável
+- `comissao_vendedor` (RT dificuldade): 0-5%. Acima de 5% → 🔴 fora do limite aceitável
+- Soma `comissao_vendedor` + `comissao_representante` > 10% → 🟡 margem apertada (alerta, NÃO bloqueia)
 - Se `tipo_produto` = "Túnel de Congelamento" → esperar temperaturas ≤ -25°C nos próximos steps
 
 **Mapa tipo_produto → temperatura esperada**:
@@ -425,11 +426,26 @@ Marque `true` quando QUALQUER um destes for verdadeiro (mesmo que score < 70):
 ```
 
 - Comprimento máximo: 29.96m (largura máxima: 19.88m conforme dropdown do front)
-- `altura`: múltiplos de 0.05m. Mínimo 2.00m, máximo 6.00m (qualquer valor X.X0 ou X.X5)
+- `altura`: múltiplos de 0.005m. Mínimo 1.50m, máximo 12.00m (qualquer valor X.XXX com incrementos de 5mm)
 - Se C × L < 2m² para Walk In → 🔴 muito pequeno
 - Se C × L > 200m² com painel modular → 🟡 considerar obra civil
 
 **⚠️ IMPORTANTE: Valores como 20.96, 5.24, 3.50, 2.00 NÃO são modulares. Confie APENAS na lista acima.**
+
+#### 3.1.1 Medida Interna × Externa (DIM-03)
+
+**O wizard coleta a medida INTERNA (padrão São Rafael).** A medida EXTERNA é derivada automaticamente pelo frontend:
+
+- **Comprimento externo** = comprimento interno + 2 × (espessura_painel / 1000)
+- **Largura externa** = largura interna + 2 × (espessura_painel / 1000)
+- **Altura externa** = altura interna + (espessura_painel / 1000) — apenas painel superior (piso é existente)
+
+**REGRAS:**
+
+1. **NÃO critique a diferença interna × externa.** A diferença é ESPERADA e CORRETA — é o resultado da espessura do painel.
+2. Se o usuário relatar uma medida "externa" que difere da interna por aproximadamente 2× espessura, isso é **esperado** — confirme como 🟢 e explique brevemente.
+3. Se a diferença for significativamente MAIOR que 2× espessura (diferença > espessura/2 além do esperado), marque 🟡 e investigue — pode haver confusão de referência.
+4. **NUNCA gere suggestion para corrigir a diferença interna/externa** — ela é intrínseca ao design do sistema.
 
 #### 3.2 Espessura do Painel vs Temperatura
 

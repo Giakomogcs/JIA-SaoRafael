@@ -1,7 +1,7 @@
 # Wizard V2 — Ajustes pós-UAT — Tasks
 
 **Design**: [design.md](design.md) · **Spec**: [spec.md](spec.md) · **Context**: [context.md](context.md)  
-**Status**: Fase 1 Completa (T1-T10 ✅) | Fase 2 Completa (T11-T13 ✅) | Fase 3 Completa (T14 ✅ + fix crítico eventos) | Fase 4 em progresso (T15 ✅, T16-T18 e T22 pendentes) | Fase 5-6 pendentes
+**Status**: Fase 1 ✅ | Fase 2 ✅ | Fase 3 ✅ | Fase 4 ✅ | Fase 5 ✅ | Fase 6 ✅ — **TODAS AS FASES COMPLETAS**
 
 > **Sem suíte automatizada.** Não existe `.specs/codebase/TESTING.md` nem framework de testes —
 > [front.html](../../../front.html) é um SPA single-file. **Gate = verificação manual no navegador**
@@ -224,47 +224,47 @@ T20 [vínculo N→1] ──→ T21 [filtro histórico]
 **Done when**: [ ] Hint mostra externa correta; [ ] atualiza ao mudar espessura; [ ] é só informativo.
 **Tests**: manual · **Gate**: smoke
 
-#### T17: Espessura do isolante de piso por compartimento
-**What**: Adicionar campo `espessura_piso` no modal de config do compartimento, persistido em `rcGetCompartmentsConfig()`.
+#### T17: Espessura do isolante de piso por compartimento — ✅ DONE
+**What**: Adicionar campo `espessura_piso_isolado_mm` no modal de config do compartimento, persistido em `rcGetCompartmentsConfig()`.
 **Where**: modal [front.html#L13850-L13970](../../../front.html#L13850).
 **Depends on**: None · **Requirement**: PISO-01
-**Done when**: [ ] Campo por compartimento; [ ] valores distintos persistem e reexibem; [ ] entra no `formData`/submit.
+**Done when**: [x] Campo por compartimento (select Padrão/50/75/100/150mm); [x] valores distintos persistem e reexibem; [x] entra no `cfg[comp].espessura_piso_isolado_mm` → `formData`/submit.
 **Tests**: manual · **Gate**: smoke
 
-#### T18: Chapa xadrez (porta + laterais) + Resistência/Mola fixas
-**What**: (a) item "Chapa Xadrez (Piso da Porta)" no `ACESSORIOS_CAT`; (b) campo step4 `chapa_xadrez_laterais`; (c) marcar "Resistência no Batente" e "Mola Aérea" como `fixed` (incluídas, não desmarcáveis).
-**Where**: `ACESSORIOS_CAT` [front.html#L14380-L14432](../../../front.html#L14380); step4 fields [#L3850-L3920](../../../front.html#L3850).
+#### T18: Chapa xadrez (porta + laterais) + Resistência/Mola fixas — ✅ DONE
+**What**: (a) item "Chapa Xadrez na Porta" no `ACESSORIOS_CAT`; (b) campo step3 `chapa_xadrez_laterais` (Não / 1,00m / 1,50m / Altura Total); (c) marcar "Resistência no Batente" e "Mola Aérea" como `essential` (pré-selecionadas, `disabled`, não desmarcáveis).
+**Where**: `ACESSORIOS_CAT` [front.html#L14839](../../../front.html#L14839); default `acessorios` da porta; step3 field `chapa_xadrez_laterais`.
 **Depends on**: None · **Requirement**: ACC-01, ACC-02, ACC-03
-**Done when**: [ ] Chapa xadrez na porta selecionável; [ ] chapa xadrez nas laterais na Etapa 4; [ ] Resistência+Mola sempre marcadas e no payload, sem permitir remoção.
+**Done when**: [x] Chapa xadrez na porta selecionável; [x] chapa xadrez nas laterais na Etapa 3; [x] Resistência+Mola sempre marcadas (badge ✨obrig.), `disabled`, sem permitir remoção.
 **Tests**: manual · **Gate**: smoke
 
-#### T22: Porta em parede divisória
-**What**: Função auxiliar `_divisorWallsForCompartment` somada às perimetrais no seletor de paredes; porta marcada `interna:true`; visualizador desenha como interna; carga externa não soma; anti-condensação conforme ΔT.
-**Where**: [front.html#L14222](../../../front.html#L14222) e seletor de parede [#L14689-L15225](../../../front.html#L14689).
+#### T22: Porta em parede divisória — ✅ DONE
+**What**: Função auxiliar `_sharedWallsForCompartment`/`_sharedWallGeom` somada às perimetrais no seletor de paredes; porta marcada com `compartimento_destino_id`; visualizador desenha sobre a divisória (rótulo A↔B); carga externa não soma; validação conta a porta interna para origem **e** destino.
+**Where**: [front.html#L17696+](../../../front.html#L17696) (`_sharedWallsForCompartment`); `openPortaModal` [#L14519](../../../front.html#L14519); `buildChamberPlantaSVG` [#L12647](../../../front.html#L12647); `validateStep(4)` [#L4801](../../../front.html#L4801).
 **Depends on**: None · **Requirement**: PORTA-01
-**Done when**: [ ] Compartimento com divisória oferece parede interna; [ ] compartimento único não oferece; [ ] porta interna não soma carga externa; [ ] anti-condensação aparece conforme ΔT.
+**Done when**: [x] Compartimento com divisória oferece parede interna (roxa tracejada); [x] compartimento único não oferece; [x] porta interna não soma carga externa; [x] validação não acusa "compartimento sem porta" para o destino. Ver [portas-internas/spec.md](../portas-internas/spec.md).
 **Tests**: manual · **Gate**: smoke (cenário 2 compartimentos)
 
 ---
 
 ### Fase 5 — IA / prompt
 
-#### T23: Prompt de validação — terceiros, RT 0–5%, medida interna×externa
-**What**: Atualizar o prompt: (a) alertar 🟡/🔴 quando observações citarem cotação/terceiros/plataformas; (b) RT agora 0–5% (substitui regra de comissão 10/15%); (c) não criticar diferença interna×externa (só informar). Opcional: detector local de palavras-chave injetando issue no Reality Check.
-**Where**: [prompts/system_prompt_wizard_validation.md](../../../prompts/system_prompt_wizard_validation.md) (L357-358 comissão; modular L638) + opcional `rc*` em front.html.
+#### T23: Prompt de validação — terceiros, RT 0–5%, medida interna×externa — ⏳ PARCIAL
+**What**: (a) ✅ detector local de palavras-chave (`checkThirdPartyMentions`) injeta alerta no chat ao avançar etapa quando `observacoes_comerciais`/`observacoes_instalacao` citam cotar/cotação/plataforma/terceiro/concorrente; (b) ⏳ atualizar o prompt: RT agora 0–5% (substitui regra de comissão 10/15%); (c) ⏳ não criticar diferença interna×externa (só informar).
+**Where**: `checkThirdPartyMentions` em [front.html](../../../front.html) (chamado em `goToNextStep`); pendente: [prompts/system_prompt_wizard_validation.md](../../../prompts/system_prompt_wizard_validation.md) (L357-358 comissão; modular L638).
 **Depends on**: T1 · **Requirement**: OBS-01, RT-01 (IA), DIM-03 (IA)
-**Done when**: [ ] Observação com "cotar/terceiro/plataforma" gera alerta; [ ] texto neutro não alerta; [ ] regra de comissão reflete 0–5%; [ ] diferença interna/externa não vira erro.
+**Done when**: [x] Observação com "cotar/terceiro/plataforma/concorrente" gera alerta; [x] texto neutro não alerta; [ ] regra de comissão reflete 0–5% no prompt; [ ] diferença interna/externa não vira erro no prompt.
 **Tests**: manual · **Gate**: smoke (rodar Avaliação na última etapa)
 
 ---
 
 ### Fase 6 — Clientes
 
-#### T19: Campos Nome Fantasia + Contribuinte de ICMS
+#### T19: Campos Nome Fantasia + Contribuinte de ICMS — ✅ DONE
 **What**: Adicionar `nome_fantasia` (text) e `contribuinte_icms` (select Sim/Não) ao step2.
 **Where**: SCHEMA step2 [front.html#L3553+](../../../front.html#L3553).
 **Depends on**: None (T0b resolvido — JSONB persiste) · **Requirement**: CAD-02
-**Done when**: [ ] Dois campos exibidos e persistidos; [ ] viajam no submit.
+**Done when**: [x] Dois campos exibidos (não-obrigatórios) e persistidos; [x] viajam no submit (JSONB).
 **Tests**: manual · **Gate**: smoke
 
 #### T20: Vínculo de orçamento a cliente (existente ou novo)

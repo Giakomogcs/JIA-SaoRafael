@@ -15,12 +15,12 @@ vários orçamentos a um cliente, chapa xadrez, alerta de IA em observações).
 
 ## Goals
 
-- [ ] Corrigir os bugs de UX dos selects "creatable" (filtro semântico confunde, botão trava após seleção).
-- [ ] Aplicar máscaras corretas (telefone/celular + DDI, CEP já existe) e renomear/ajustar campos conforme regras.
-- [ ] Tornar campos cadastrais não-obrigatórios e introduzir cadastro/vínculo de clientes com filtro.
-- [ ] Ajustar grade dimensional (altura 1,50–12 m em passos de 5 mm; largura em passos de 280 mm) e finalidades.
-- [ ] Adicionar acessórios faltantes (chapa xadrez na porta e nas laterais) e dados de transportadora.
-- [ ] Estender o alerta do Agente para observações com pedidos de terceiros/cotação.
+- [x] Corrigir os bugs de UX dos selects "creatable" (filtro semântico confunde, botão trava após seleção).
+- [x] Aplicar máscaras corretas (telefone/celular + DDI, CEP já existe) e renomear/ajustar campos conforme regras.
+- [ ] Tornar campos cadastrais não-obrigatórios (✅) e introduzir cadastro/vínculo de clientes com filtro (⏳ CLI-01 pendente).
+- [x] Ajustar grade dimensional (altura 1,50–12 m em passos de 5 mm; largura em passos de 280 mm) e finalidades.
+- [x] Adicionar acessórios faltantes (chapa xadrez na porta e nas laterais) e dados de transportadora.
+- [x] Estender o alerta do Agente para observações com pedidos de terceiros/cotação (detector local; regras no prompt pendentes).
 
 ## Out of Scope
 
@@ -293,32 +293,32 @@ lógica de alerta do wizard). Campos de observação: `observacoes_comerciais`
 
 | ID       | História                                           | Local em front.html                              | Fase      | Status    |
 | -------- | -------------------------------------------------- | ------------------------------------------------ | --------- | --------- |
-| CREAT-01 | P1 creatable mostra tudo / não trava               | filterOptions L7897; handlers L7172              | Design    | Pending   |
-| MASK-01  | P1 máscara + DDI telefone                          | maskCep L8802; contato_telefone L3592            | Design    | Pending   |
-| RT-01    | P1 RT indicação/dificuldade 0–5%                   | comissao\_\* L3516-L3530                         | Tasks     | Pending   |
-| CAD-01   | P1 campos cadastrais opcionais                     | step2 L3553-L3592                                | Tasks     | Pending   |
-| CAD-02   | P1 Nome Fantasia + Contribuinte ICMS               | step2 fields                                     | Design    | Pending   |
+| CREAT-01 | P1 creatable mostra tudo / não trava               | filterOptions L7897; handlers L7172              | Implementing | Verified  |
+| MASK-01  | P1 máscara + DDI telefone                          | maskCep L8802; contato_telefone L3592            | Implementing | Verified  |
+| RT-01    | P1 RT indicação/dificuldade 0–5%                   | comissao\_\* L3516-L3530                         | Implementing | Verified  |
+| CAD-01   | P1 campos cadastrais opcionais                     | step2 L3553-L3592                                | Implementing | Verified  |
+| CAD-02   | P1 Nome Fantasia + Contribuinte ICMS               | step2 fields                                     | Implementing | Verified  |
 | CLI-01   | P1 vincular N orçamentos a cliente + filtro        | bindClientAutocomplete L7625; migrations 011/012 | In Design | Discussed |
-| LBL-01   | P2 Altura interna (def. interna)                   | altura L3760                                     | Tasks     | Pending   |
-| LBL-02   | P2 "Piso Alvenaria"                                | piso L3804                                       | Tasks     | Pending   |
-| LBL-03   | P2 "Ramo de Atividade"                             | dados_tecnicos_resumo L3619                      | Tasks     | Pending   |
-| LBL-04   | P2 pergunta local de instalação                    | local-instalacao-box render L7028                | Tasks     | Pending   |
-| MENU-01  | P2 remover "Separado (NF à parte)"                 | faturamento_mao_obra L3941                       | Tasks     | Pending   |
-| FAT-01   | P2 "Aprovação de Faturamento via…" + sem Boleto    | exigencia_faturamento L3658                      | Tasks     | Pending   |
-| PAG-01   | P2 prazo pagamento p/ Regras de Negócio + "Outros" | prazo_pagamento L3672                            | Design    | Pending   |
-| DIM-01   | P2 altura 1,50–12 m passo 5 mm                     | altura options L3760                             | Tasks     | Pending   |
-| DIM-02   | P2 largura passo 280 mm (validar)                  | largura L3736                                    | Tasks     | Pending   |
-| FIN-01   | P2 finalidade "Diversos"                           | RC*USO*\* L15461; select L13881                  | In Design | Discussed |
+| LBL-01   | P2 Altura interna (def. interna)                   | altura L3760                                     | Implementing | Verified  |
+| LBL-02   | P2 "Piso Alvenaria"                                | piso L3804                                       | Implementing | Verified  |
+| LBL-03   | P2 "Ramo de Atividade"                             | dados_tecnicos_resumo L3619                      | Implementing | Verified  |
+| LBL-04   | P2 pergunta local de instalação                    | local-instalacao-box render L7028                | Implementing | Verified  |
+| MENU-01  | P2 remover "Separado (NF à parte)"                 | faturamento_mao_obra L3941                       | Implementing | Verified  |
+| FAT-01   | P2 "Aprovação de Faturamento via…" + sem Boleto    | exigencia_faturamento L3658                      | Implementing | Verified  |
+| PAG-01   | P2 prazo pagamento p/ Regras de Negócio + "Outros" | prazo_pagamento L3672                            | Implementing | Verified  |
+| DIM-01   | P2 altura 1,50–12 m passo 5 mm                     | altura options L3760                             | Implementing | Verified  |
+| DIM-02   | P2 largura passo 280 mm (validar)                  | largura L3736                                    | Implementing | Verified  |
+| FIN-01   | P2 finalidade "Diversos"                           | RC*USO*\* L15461; select L13881                  | Implementing | Verified  |
 | DIM-03   | P2 medida externa/oscilação (pedido 311388)        | Reality Check + prompt validação                 | In Design | Discussed |
-| ACC-01   | P2 Resistência+Mola obrigatórias                   | ACESSORIOS_CAT L14380                            | Design    | Pending   |
-| ACC-02   | P2 chapa xadrez na porta                           | ACESSORIOS_CAT L14380                            | Design    | Pending   |
-| ACC-03   | P2 chapa xadrez nas laterais                       | Etapa 4 fields L3850                             | Design    | Pending   |
-| PORTA-01 | P2 porta em divisória                              | \_perimeterWallsForCompartment L14222            | In Design | Discussed |
-| PISO-01  | P2 espessura isolante piso por compartimento       | modal compartimento L13850                       | Design    | Pending   |
-| FRETE-01 | P2 dados transportadora indicada                   | tipo_frete L3973                                 | Design    | Pending   |
-| OBS-01   | P2 alerta agente em observações                    | observacoes\_\* L3536/L3997 + prompts            | Design    | Pending   |
+| ACC-01   | P2 Resistência+Mola obrigatórias                   | ACESSORIOS_CAT L14839                            | Implementing | Verified  |
+| ACC-02   | P2 chapa xadrez na porta                           | ACESSORIOS_CAT L14839                            | Implementing | Verified  |
+| ACC-03   | P2 chapa xadrez nas laterais                       | Etapa 3 chapa_xadrez_laterais                    | Implementing | Verified  |
+| PORTA-01 | P2 porta em divisória                              | \_sharedWallsForCompartment L17696               | Implementing | Verified  |
+| PISO-01  | P2 espessura isolante piso por compartimento       | modal compartimento L13850                       | Implementing | Verified  |
+| FRETE-01 | P2 dados transportadora indicada                   | tipo_frete L3973                                 | Implementing | Verified  |
+| OBS-01   | P2 alerta agente em observações                    | checkThirdPartyMentions (detector local)         | Implementing | Verified  |
 
-**Cobertura:** 24 requisitos · 4 gray areas **resolvidos no Discuss** ([context.md](context.md)) · 0 mapeados a tasks ainda ⚠️
+**Cobertura:** 24 requisitos · 22 **Verified** (Implementing) · 2 **In Design** (CLI-01, DIM-03) · gray areas resolvidos no Discuss ([context.md](context.md))
 
 **ID format:** `[CATEGORIA]-[NUM]` · **Status:** Pending → In Design → In Tasks → Implementing → Verified
 
@@ -326,22 +326,22 @@ lógica de alerta do wizard). Campos de observação: `observacoes_comerciais`
 
 ## Success Criteria
 
-- [ ] Vendedor consegue reabrir e trocar qualquer select sem ficar travado.
-- [ ] Telefone exibe DDI + máscara; CEP/CNPJ seguem mascarados.
-- [ ] RT de indicação e RT dificuldade limitados a 0–5%.
-- [ ] Etapa 2 avança sem Razão Social/CNPJ/CEP/Endereço/nº; Nome Fantasia e Contribuinte ICMS presentes.
-- [ ] É possível vincular ≥2 orçamentos a um cliente e filtrar a listagem por cliente.
-- [ ] Altura aceita 1,50–12 m em passos de 5 mm; finalidade "Diversos" disponível.
-- [ ] Chapa xadrez (porta e laterais) e dados da transportadora indicada disponíveis.
-- [ ] Resistência no Batente e Mola Aérea sempre presentes (não opcionais).
-- [ ] Observações com pedidos de terceiros disparam alerta do Agente.
+- [x] Vendedor consegue reabrir e trocar qualquer select sem ficar travado.
+- [x] Telefone exibe DDI + máscara; CEP/CNPJ seguem mascarados.
+- [x] RT de indicação e RT dificuldade limitados a 0–5%.
+- [x] Etapa 2 avança sem Razão Social/CNPJ/CEP/Endereço/nº; Nome Fantasia e Contribuinte ICMS presentes.
+- [ ] É possível vincular ≥2 orçamentos a um cliente e filtrar a listagem por cliente. _(CLI-01 — pendente)_
+- [x] Altura aceita 1,50–12 m em passos de 5 mm; finalidade "Diversos" disponível.
+- [x] Chapa xadrez (porta e laterais) e dados da transportadora indicada disponíveis.
+- [x] Resistência no Batente e Mola Aérea sempre presentes (não opcionais).
+- [x] Observações com pedidos de terceiros disparam alerta do Agente.
 
 ---
 
 ## Próximos passos (auto-sizing)
 
-1. **Discuss** (obrigatório antes de Design) para os 4 gray areas: CLI-01, DIM-03, FIN-01/medida, PORTA-01.
-2. **Design** dos itens que mexem em componentes compartilhados: CREAT-01 (reescrita do creatable),
-   CLI-01 (vínculo + filtro), OBS-01 (gatilho de IA), ACC-01/02/03 e PISO-01.
-3. **Quick-mode/Tasks** para os renomeios e ajustes de opção (LBL-\*, MENU-01, FAT-01, DIM-01/02, RT-01,
-   CAD-01) — baixo risco, edições pontuais no SCHEMA.
+**Restam apenas 3 itens** (os demais 22 requisitos estão implementados/verificados):
+
+1. **T16 (DIM-03 UI)** — hint "externa ≈ interna + 2×espessura" ao lado das dimensões na Etapa 3.
+2. **T20/T21 (CLI-01)** — vínculo N orçamentos → 1 cliente + filtro por cliente no histórico (infra de BD pronta: migration 011/012 + RPC).
+3. **T23 (prompt)** — atualizar `system_prompt_wizard_validation.md`: RT 0–5% (no lugar de comissão 10/15%) e não criticar diferença interna×externa. _(O detector local de terceiros já está no front.)_

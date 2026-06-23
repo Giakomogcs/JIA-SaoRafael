@@ -1,6 +1,6 @@
 # Feature: Portas entre compartimentos (portas internas / de passagem)
 
-**Status:** In Progress
+**Status:** ✅ Done (implementado e verificado no navegador)
 **Scope:** Large — single-file (`front.html`) wizard feature touching data model, wizard UI, validation, planta SVG e payload de saída.
 
 ## Problema
@@ -39,3 +39,18 @@ dois compartimentos adjacentes (porta de passagem A ↔ B).
 - Porta aparece na planta sobre a divisória com rótulo `C1↔C2`.
 - Validação não acusa "compartimento sem porta" para o destino.
 - Resumo final mostra a ligação.
+
+## Status de Implementação (R1–R8)
+
+| Req | Descrição | Status |
+| --- | --------- | ------ |
+| R1 | Detectar paredes internas compartilhadas (`_sharedWallsForCompartment`, `_sharedWallGeom`) | ✅ |
+| R2 | Persistir `compartimento_destino_id` em `formData.step4.portas[]` | ✅ |
+| R3 | Wizard oferece paredes externas **e** internas (roxas tracejadas) com origem→destino automático | ✅ |
+| R4 | Posição (%) usa o segmento compartilhado como referência | ✅ |
+| R5 | Validação conta porta interna para origem **e** destino | ✅ |
+| R6 | Planta SVG desenha a porta sobre a divisória com rótulo `A↔B` | ✅ |
+| R7 | Resumo/payload mostra a ligação `A ↔ B` | ✅ |
+| R8 | Destino órfão (compartimento removido) é limpo em `syncStep4PortasWithCompartments` | ✅ |
+
+> Rastreado também como **PORTA-01 / T22** em [wizard-v2-ajustes-uat](../wizard-v2-ajustes-uat/tasks.md).
