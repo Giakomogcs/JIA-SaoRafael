@@ -71,17 +71,17 @@ Converta o Markdown em Word gerando um script (`documentacao/converter.py` com `
 
 **Paleta SENAI (use exatamente estes tokens):**
 
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `accent` | `E30613` | Vermelho SENAI — H1, barras, capa, header de tabela |
-| `accent2` | `8B0410` | Vermelho escuro — detalhes, rodapé da capa |
-| `ink` | `0B0B0B` | Títulos escuros (H2/H3) |
-| `ink2` | `1F2937` | Texto corpo |
-| `gray` | `6B7280` | Legendas, metadados |
-| `rule` | `D1D5DB` | Bordas de tabela |
-| `zebra` | `F9F7F7` | Linhas alternadas |
-| `cellHdr` | `FBE9EB` | Wash vermelho claro do cabeçalho de tabela |
-| `danger` `B91C1C` · `warn` `B45309` · `tip` `047857` · `info` `1D4ED8` | — | Callouts |
+| Token                                                                  | Hex      | Uso                                                 |
+| ---------------------------------------------------------------------- | -------- | --------------------------------------------------- |
+| `accent`                                                               | `E30613` | Vermelho SENAI — H1, barras, capa, header de tabela |
+| `accent2`                                                              | `8B0410` | Vermelho escuro — detalhes, rodapé da capa          |
+| `ink`                                                                  | `0B0B0B` | Títulos escuros (H2/H3)                             |
+| `ink2`                                                                 | `1F2937` | Texto corpo                                         |
+| `gray`                                                                 | `6B7280` | Legendas, metadados                                 |
+| `rule`                                                                 | `D1D5DB` | Bordas de tabela                                    |
+| `zebra`                                                                | `F9F7F7` | Linhas alternadas                                   |
+| `cellHdr`                                                              | `FBE9EB` | Wash vermelho claro do cabeçalho de tabela          |
+| `danger` `B91C1C` · `warn` `B45309` · `tip` `047857` · `info` `1D4ED8` | —        | Callouts                                            |
 
 **Requisitos visuais obrigatórios (espelhar o padrão do Playbook):**
 
@@ -129,6 +129,7 @@ Adapte/omita seções que comprovadamente não se aplicam, registrando o motivo.
 ## Output Format
 
 Ao terminar, responda em texto curto com:
+
 - Caminho do `.docx` gerado e do Markdown-fonte.
 - Tipo de repositório detectado e stack principal.
 - Lista das seções incluídas e das que foram omitidas (com motivo).

@@ -82,12 +82,12 @@ Sistema web com **validação técnica em tempo real**:
 
 ## 2. Atores e Papéis
 
-| Ator | Perfil | Permissões | Cenário Típico |
-|------|--------|------------|----------------|
-| **Representante / Vendedor** | `{ role: "usuario", company: "saorafael" }` | Criar e editar próprios orçamentos, consultar clientes, usar assistente de chat | Preenche wizard para cliente, consulta dimensionamento via chat, submete orçamento para aprovação interna |
-| **Administrador** | `{ role: "admin", company: "saorafael" }` | CRUD de usuários, leitura de todos os orçamentos, gestão de clientes, aprovação de propostas | Cria conta de novos representantes, consulta pipeline de orçamentos, aprova propostas antes de enviar ao cliente |
-| **Sistema IA (Agente Wizard)** | (stateless, via service role) | Validação técnica read-only (não escreve no banco diretamente) | Recebe dados de uma etapa do wizard, cruza com RAG e retorna JSON estruturado com correções/sugestões |
-| **Sistema IA (Agente Chat)** | (stateful, via service role) | Leitura de orçamentos do usuário, leitura de documentos RAG, escrita de mensagens | Responde perguntas sobre dimensionamento, consulta orçamentos anteriores, sugere valores para campos do wizard |
+| Ator                           | Perfil                                      | Permissões                                                                                   | Cenário Típico                                                                                                   |
+| ------------------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Representante / Vendedor**   | `{ role: "usuario", company: "saorafael" }` | Criar e editar próprios orçamentos, consultar clientes, usar assistente de chat              | Preenche wizard para cliente, consulta dimensionamento via chat, submete orçamento para aprovação interna        |
+| **Administrador**              | `{ role: "admin", company: "saorafael" }`   | CRUD de usuários, leitura de todos os orçamentos, gestão de clientes, aprovação de propostas | Cria conta de novos representantes, consulta pipeline de orçamentos, aprova propostas antes de enviar ao cliente |
+| **Sistema IA (Agente Wizard)** | (stateless, via service role)               | Validação técnica read-only (não escreve no banco diretamente)                               | Recebe dados de uma etapa do wizard, cruza com RAG e retorna JSON estruturado com correções/sugestões            |
+| **Sistema IA (Agente Chat)**   | (stateful, via service role)                | Leitura de orçamentos do usuário, leitura de documentos RAG, escrita de mensagens            | Responde perguntas sobre dimensionamento, consulta orçamentos anteriores, sugere valores para campos do wizard   |
 
 ### Observação sobre RLS (Row-Level Security)
 
@@ -227,49 +227,49 @@ Apenas admins (`saorafael_is_admin() = true`) podem chamar essas RPCs. Usuários
 
 ### 4.1 Regras Técnicas (Validação de Engenharia)
 
-| Regra | Severidade | Origem | Exemplo |
-|-------|-----------|--------|---------|
-| **Dimensões modulares** | 🔴 Bloqueante | Reality Check Engine | Comprimento e largura devem ser múltiplos de 0,28m a partir de 1,12m. Altura múltiplos de 0,05m. Se não, a planilha não consegue calcular quantidade de painéis. |
-| **Espessura mínima por temperatura** | 🔴 Bloqueante | RAG (01_manual_dimensionamento.md) | Congelamento -18°C exige mínimo 150mm PU ou 125mm PIR. Espessura menor causa condensação externa e perda de eficiência. |
-| **Porta menor que câmara** | 🔴 Bloqueante | Reality Check Engine | `porta_largura + 300mm <= min(comprimento, largura)` e `porta_altura + 200mm <= altura`. Valores maiores = impossível instalar. |
-| **Piso isolado obrigatório para temp < 0°C** | 🔴 Bloqueante | RAG (01_manual_dimensionamento.md, seção 4.2) | "Sem Piso" + temperatura negativa = condensação, gelo no solo, destruição do piso da edificação. |
-| **Fluido dentro da faixa operacional** | 🔴 Bloqueante | RAG (01_manual_dimensionamento.md, seção 7.2) | R-134a opera entre -10°C e +15°C. Usar para -25°C = evaporador insuficiente. |
-| **Revestimento por corrosividade** | 🟡 Recomendação | RAG (01_manual_dimensionamento.md, seção 3) | Amônia (R-717) exige Inox 304+. Galvalume + amônia = corrosão rápida. |
-| **Iluminação mínima por área** | 🟡 Recomendação | Reality Check Engine | 1 luminária LED 36W (4500 lm) a cada ~6-8m² para congelamento. Subdimensionar compromete segurança e NR-17. |
-| **Comissão total <= 15%** | 🟡 Alerta comercial | RAG (02_regras_negocio_planilha.md) | Vendedor 10% + Representante 6% = 16% → acima do padrão, avisar gerente. |
+| Regra                                        | Severidade          | Origem                                        | Exemplo                                                                                                                                                          |
+| -------------------------------------------- | ------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dimensões modulares**                      | 🔴 Bloqueante       | Reality Check Engine                          | Comprimento e largura devem ser múltiplos de 0,28m a partir de 1,12m. Altura múltiplos de 0,05m. Se não, a planilha não consegue calcular quantidade de painéis. |
+| **Espessura mínima por temperatura**         | 🔴 Bloqueante       | RAG (01_manual_dimensionamento.md)            | Congelamento -18°C exige mínimo 150mm PU ou 125mm PIR. Espessura menor causa condensação externa e perda de eficiência.                                          |
+| **Porta menor que câmara**                   | 🔴 Bloqueante       | Reality Check Engine                          | `porta_largura + 300mm <= min(comprimento, largura)` e `porta_altura + 200mm <= altura`. Valores maiores = impossível instalar.                                  |
+| **Piso isolado obrigatório para temp < 0°C** | 🔴 Bloqueante       | RAG (01_manual_dimensionamento.md, seção 4.2) | "Sem Piso" + temperatura negativa = condensação, gelo no solo, destruição do piso da edificação.                                                                 |
+| **Fluido dentro da faixa operacional**       | 🔴 Bloqueante       | RAG (01_manual_dimensionamento.md, seção 7.2) | R-134a opera entre -10°C e +15°C. Usar para -25°C = evaporador insuficiente.                                                                                     |
+| **Revestimento por corrosividade**           | 🟡 Recomendação     | RAG (01_manual_dimensionamento.md, seção 3)   | Amônia (R-717) exige Inox 304+. Galvalume + amônia = corrosão rápida.                                                                                            |
+| **Iluminação mínima por área**               | 🟡 Recomendação     | Reality Check Engine                          | 1 luminária LED 36W (4500 lm) a cada ~6-8m² para congelamento. Subdimensionar compromete segurança e NR-17.                                                      |
+| **Comissão total <= 15%**                    | 🟡 Alerta comercial | RAG (02_regras_negocio_planilha.md)           | Vendedor 10% + Representante 6% = 16% → acima do padrão, avisar gerente.                                                                                         |
 
 ### 4.2 Regras Comerciais
 
-| Regra | Descrição | Implementação |
-|-------|-----------|---------------|
-| **Protocolo único** | Formato `SR-YYYYMM-NNNN` (ano-mês-sequencial). Gerado pelo workflow `Wizard Submit` via query SQL: `SELECT COALESCE(MAX(...), 0) + 1 FROM saorafael_wizard_submission WHERE protocol LIKE 'SR-202606-%'` | `São Rafael - Wizard Submit (Save Orçamento).json` |
-| **Upsert por session_id** | Se representante resubmeter o mesmo orçamento (mesma sessão de chat), faz UPDATE ao invés de INSERT. Preserva protocolo original. | `UPSERT saorafael_wizard_submission WHERE session_id = ?` |
-| **DIFAL automático** | `local_instalacao_municipio` (formato "Cidade/UF") alimenta cálculo de ICMS/DIFAL na planilha. UF diferente da sede São Rafael = aplicar diferencial. | Campo `step2.local_instalacao_municipio` |
-| **Prazo de pagamento afeta desconto** | "À Vista" = desconto financeiro maior. "30/60/90" = diferimento menor. Planilha calcula automaticamente. | Campo `step2.prazo_pagamento` |
-| **Validade da proposta padrão: 15 dias** | Pode ser ajustada para 5, 10, 30 dias. Após expirar, orçamento precisa ser recotado (preços podem ter mudado). | Campo `step1.validade_proposta` |
+| Regra                                    | Descrição                                                                                                                                                                                                | Implementação                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **Protocolo único**                      | Formato `SR-YYYYMM-NNNN` (ano-mês-sequencial). Gerado pelo workflow `Wizard Submit` via query SQL: `SELECT COALESCE(MAX(...), 0) + 1 FROM saorafael_wizard_submission WHERE protocol LIKE 'SR-202606-%'` | `São Rafael - Wizard Submit (Save Orçamento).json`        |
+| **Upsert por session_id**                | Se representante resubmeter o mesmo orçamento (mesma sessão de chat), faz UPDATE ao invés de INSERT. Preserva protocolo original.                                                                        | `UPSERT saorafael_wizard_submission WHERE session_id = ?` |
+| **DIFAL automático**                     | `local_instalacao_municipio` (formato "Cidade/UF") alimenta cálculo de ICMS/DIFAL na planilha. UF diferente da sede São Rafael = aplicar diferencial.                                                    | Campo `step2.local_instalacao_municipio`                  |
+| **Prazo de pagamento afeta desconto**    | "À Vista" = desconto financeiro maior. "30/60/90" = diferimento menor. Planilha calcula automaticamente.                                                                                                 | Campo `step2.prazo_pagamento`                             |
+| **Validade da proposta padrão: 15 dias** | Pode ser ajustada para 5, 10, 30 dias. Após expirar, orçamento precisa ser recotado (preços podem ter mudado).                                                                                           | Campo `step1.validade_proposta`                           |
 
 ### 4.3 Regras de Segurança
 
-| Regra | Implementação | Observação |
-|-------|---------------|------------|
-| **Autenticação obrigatória** | Todo endpoint (exceto health-check) exige JWT do Supabase. Frontend chama `supabase.auth.signInWithPassword()` e armazena token em localStorage. | `front.html` linhas ~50-150 |
-| **RLS por user_id** | Tabelas `saorafael_chat_message` e `saorafael_wizard_submission` têm policies que filtram por `auth.uid()`. Usuário só vê próprios registros. | `003_rls_policies.sql` |
-| **Admin gate** | Função `saorafael_is_admin()` lê `raw_user_meta_data->>'role'`. Se `!= 'admin'`, policies bloqueiam. Frontend esconde botões, mas banco realmente bloqueia. | `002_user_crud_functions.sql` linha 1-10 |
-| **Service role isolado** | Chave `service_role` (bypass RLS) só usada pelo n8n em credenciais protegidas. Frontend carrega apenas `anon key` pública. | n8n credentials + `front.html` linha ~30 |
+| Regra                        | Implementação                                                                                                                                               | Observação                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Autenticação obrigatória** | Todo endpoint (exceto health-check) exige JWT do Supabase. Frontend chama `supabase.auth.signInWithPassword()` e armazena token em localStorage.            | `front.html` linhas ~50-150              |
+| **RLS por user_id**          | Tabelas `saorafael_chat_message` e `saorafael_wizard_submission` têm policies que filtram por `auth.uid()`. Usuário só vê próprios registros.               | `003_rls_policies.sql`                   |
+| **Admin gate**               | Função `saorafael_is_admin()` lê `raw_user_meta_data->>'role'`. Se `!= 'admin'`, policies bloqueiam. Frontend esconde botões, mas banco realmente bloqueia. | `002_user_crud_functions.sql` linha 1-10 |
+| **Service role isolado**     | Chave `service_role` (bypass RLS) só usada pelo n8n em credenciais protegidas. Frontend carrega apenas `anon key` pública.                                  | n8n credentials + `front.html` linha ~30 |
 
 ---
 
 ## 5. Entidades de Domínio (Glossário de Negócio)
 
-| Entidade | Descrição | Atributos-Chave |
-|----------|-----------|-----------------|
-| **Orçamento (Wizard Submission)** | Proposta comercial completa de um equipamento/câmara. Passa por validação técnica e gera protocolo único. | `protocol`, `tipo_produto`, `dimensoes`, `cliente_id`, `status`, `form_data` (JSON completo) |
-| **Cliente** | Empresa ou pessoa física que solicita orçamento. Pode ter múltiplos orçamentos ao longo do tempo. | `razao_social`, `cnpj_cpf`, `cidade/estado`, `telefone`, `contato_nome`, histórico de orçamentos |
-| **Sessão de Chat** | Conversa multi-turno entre representante e assistente IA. Identificada por `session_id` (UUID). | `session_id`, mensagens (array de `{type: 'human'\|'ai', content: '...'}`), `user_id` |
-| **Compartimento** | Divisão interna de uma câmara com temperatura independente. Cada compartimento tem sistema de refrigeração próprio. | `temperatura_operacional`, `fluido_refrigerante`, `tipo_compressor`, `tipo_degelo`, `tensao` |
-| **Painel Isotérmico** | Componente modular de parede/teto/piso. Define isolamento térmico. | `espessura` (mm), `tipo_isolamento` (PU/PIR), `revestimento_interno`, `revestimento_externo` |
-| **Documento RAG** | Chunk de conhecimento técnico indexado para o assistente IA. | `content` (texto), `embedding` (vetor), `metadata` (fonte, título, página) |
-| **Usuário** | Representante ou admin da São Rafael. Autenticado via Supabase Auth. | `email`, `full_name`, `company` ("saorafael"), `role` ("admin"\|"usuario") |
+| Entidade                          | Descrição                                                                                                           | Atributos-Chave                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Orçamento (Wizard Submission)** | Proposta comercial completa de um equipamento/câmara. Passa por validação técnica e gera protocolo único.           | `protocol`, `tipo_produto`, `dimensoes`, `cliente_id`, `status`, `form_data` (JSON completo)     |
+| **Cliente**                       | Empresa ou pessoa física que solicita orçamento. Pode ter múltiplos orçamentos ao longo do tempo.                   | `razao_social`, `cnpj_cpf`, `cidade/estado`, `telefone`, `contato_nome`, histórico de orçamentos |
+| **Sessão de Chat**                | Conversa multi-turno entre representante e assistente IA. Identificada por `session_id` (UUID).                     | `session_id`, mensagens (array de `{type: 'human'\|'ai', content: '...'}`), `user_id`            |
+| **Compartimento**                 | Divisão interna de uma câmara com temperatura independente. Cada compartimento tem sistema de refrigeração próprio. | `temperatura_operacional`, `fluido_refrigerante`, `tipo_compressor`, `tipo_degelo`, `tensao`     |
+| **Painel Isotérmico**             | Componente modular de parede/teto/piso. Define isolamento térmico.                                                  | `espessura` (mm), `tipo_isolamento` (PU/PIR), `revestimento_interno`, `revestimento_externo`     |
+| **Documento RAG**                 | Chunk de conhecimento técnico indexado para o assistente IA.                                                        | `content` (texto), `embedding` (vetor), `metadata` (fonte, título, página)                       |
+| **Usuário**                       | Representante ou admin da São Rafael. Autenticado via Supabase Auth.                                                | `email`, `full_name`, `company` ("saorafael"), `role` ("admin"\|"usuario")                       |
 
 ---
 
@@ -310,15 +310,17 @@ Apenas admins (`saorafael_is_admin() = true`) podem chamar essas RPCs. Usuários
    ```json
    {
      "output": "🔴 **espessura_painel**: 100mm insuficiente para -18°C. Mínimo 150mm PU.",
-     "suggestions": [{
-       "field": "espessura_painel",
-       "value": "150",
-       "reason": "Temperatura -18°C exige mínimo 150mm PU conforme manual",
-       "severity": "critical",
-       "alternatives": [
-         {"value": "125", "reason": "Se usar PIR (mais caro)"}
-       ]
-     }]
+     "suggestions": [
+       {
+         "field": "espessura_painel",
+         "value": "150",
+         "reason": "Temperatura -18°C exige mínimo 150mm PU conforme manual",
+         "severity": "critical",
+         "alternatives": [
+           { "value": "125", "reason": "Se usar PIR (mais caro)" }
+         ]
+       }
+     ]
    }
    ```
 8. Frontend exibe sugestão com chip clicável "150mm"
@@ -339,13 +341,15 @@ Apenas admins (`saorafael_is_admin() = true`) podem chamar essas RPCs. Usuários
 2. Frontend chama RPC `saorafael_search_clients('ABC')`
 3. Supabase retorna:
    ```json
-   [{
-     "id": "uuid-123",
-     "razao_social": "Frigorífico ABC Ltda",
-     "cnpj_cpf": "12.345.678/0001-90",
-     "total_orcamentos": 3,
-     "ultimo_orcamento": "2026-03-15T10:30:00Z"
-   }]
+   [
+     {
+       "id": "uuid-123",
+       "razao_social": "Frigorífico ABC Ltda",
+       "cnpj_cpf": "12.345.678/0001-90",
+       "total_orcamentos": 3,
+       "ultimo_orcamento": "2026-03-15T10:30:00Z"
+     }
+   ]
    ```
 4. Usuário clica "Ver Histórico"
 5. Frontend chama RPC `saorafael_client_submissions('uuid-123')`
@@ -375,23 +379,23 @@ Apenas admins (`saorafael_is_admin() = true`) podem chamar essas RPCs. Usuários
 
 ### 1.1 Visão Geral
 
-| Camada | Tecnologia | Versão | Propósito |
-|--------|-----------|--------|-----------|
-| **Frontend** | HTML + JavaScript vanilla | ES2022+ | UI única (~20k linhas), sem bundler |
-| **Estilo** | Tailwind CSS | 3.x (via CDN) | Utilitary-first CSS |
-| **Markdown Rendering** | Marked.js | — | Renderizar respostas do chat |
-| **Syntax Highlight** | Highlight.js | — | Code blocks no chat |
-| **Ícones** | Lucide | — (CDN) | Ícones SVG |
-| **Planilhas** | SheetJS (xlsx.js) | — | Parsear uploads Excel/CSV |
-| **Auth & DB** | Supabase JS Client | 2.x | Autenticação + PostgREST |
-| **Backend Orquestração** | n8n | Self-hosted | Workflows JSON (webhooks REST) |
-| **Banco de Dados** | PostgreSQL | 15+ (Supabase) | RLS + pgvector |
-| **Vector Store** | pgvector | 0.5+ | Embeddings para RAG |
-| **LLM — Wizard** | Azure OpenAI | API 2024-02-01 | `gpt-5.4-mini` validação |
-| **LLM — Chat** | Azure OpenAI | API 2024-02-01 | `gpt-5.4-mini` + LangChain Agent |
-| **Embeddings** | Azure OpenAI + Google Gemini | — | `text-embedding-3-small` + Gemini Embeddings |
-| **LLM Auxiliar (RAG ingest)** | OpenRouter | — | Resumo/normalização na ingestão de docs |
-| **APIs Externas** | IBGE, ViaCEP | REST público | Busca de cidades/UF, lookup CEP |
+| Camada                        | Tecnologia                   | Versão         | Propósito                                    |
+| ----------------------------- | ---------------------------- | -------------- | -------------------------------------------- |
+| **Frontend**                  | HTML + JavaScript vanilla    | ES2022+        | UI única (~20k linhas), sem bundler          |
+| **Estilo**                    | Tailwind CSS                 | 3.x (via CDN)  | Utilitary-first CSS                          |
+| **Markdown Rendering**        | Marked.js                    | —              | Renderizar respostas do chat                 |
+| **Syntax Highlight**          | Highlight.js                 | —              | Code blocks no chat                          |
+| **Ícones**                    | Lucide                       | — (CDN)        | Ícones SVG                                   |
+| **Planilhas**                 | SheetJS (xlsx.js)            | —              | Parsear uploads Excel/CSV                    |
+| **Auth & DB**                 | Supabase JS Client           | 2.x            | Autenticação + PostgREST                     |
+| **Backend Orquestração**      | n8n                          | Self-hosted    | Workflows JSON (webhooks REST)               |
+| **Banco de Dados**            | PostgreSQL                   | 15+ (Supabase) | RLS + pgvector                               |
+| **Vector Store**              | pgvector                     | 0.5+           | Embeddings para RAG                          |
+| **LLM — Wizard**              | Azure OpenAI                 | API 2024-02-01 | `gpt-5.4-mini` validação                     |
+| **LLM — Chat**                | Azure OpenAI                 | API 2024-02-01 | `gpt-5.4-mini` + LangChain Agent             |
+| **Embeddings**                | Azure OpenAI + Google Gemini | —              | `text-embedding-3-small` + Gemini Embeddings |
+| **LLM Auxiliar (RAG ingest)** | OpenRouter                   | —              | Resumo/normalização na ingestão de docs      |
+| **APIs Externas**             | IBGE, ViaCEP                 | REST público   | Busca de cidades/UF, lookup CEP              |
 
 ### 1.2 Dependências npm/pip (não aplicável)
 
@@ -483,11 +487,13 @@ C4Container
 - Estado vive no PostgreSQL (Supabase)
 
 **Vantagens**:
+
 - Zero servidor próprio a manter (deploy = copiar HTML + importar JSONs no n8n)
 - RLS do Postgres garante segurança mesmo com frontend público
 - Observabilidade visual (n8n UI mostra execuções, logs, payloads)
 
 **Desvantagens**:
+
 - Lógica de negócio espalhada entre SQL (RPCs), JSON (workflows) e JS (frontend + Reality Check)
 - Diffs de workflow JSON são ruins de revisar
 - Debugging de fluxos complexos exige acessar painel do n8n
@@ -554,6 +560,7 @@ Arquivo monolítico de **~20.000 linhas** contendo:
   - CRM (busca de clientes, histórico, duplicação)
 
 **Por que monolítico?**
+
 - Decisão arquitetural (ADR-001): equipe pequena, deploys frequentes, sem build pipeline
 - Deploy = copiar 1 arquivo
 - Atingindo limite de manutenibilidade (Wizard V2 planeja modularizar)
@@ -641,15 +648,16 @@ erDiagram
 
 #### `auth.users` (Supabase nativo)
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | uuid | PK — identificador único do usuário |
-| `email` | text | E-mail (login) |
-| `encrypted_password` | text | Hash bcrypt da senha |
-| `raw_user_meta_data` | jsonb | Metadados customizados: `{company, role, full_name}` |
-| `created_at` | timestamptz | Data de criação |
+| Coluna               | Tipo        | Descrição                                            |
+| -------------------- | ----------- | ---------------------------------------------------- |
+| `id`                 | uuid        | PK — identificador único do usuário                  |
+| `email`              | text        | E-mail (login)                                       |
+| `encrypted_password` | text        | Hash bcrypt da senha                                 |
+| `raw_user_meta_data` | jsonb       | Metadados customizados: `{company, role, full_name}` |
+| `created_at`         | timestamptz | Data de criação                                      |
 
 **Valores de `raw_user_meta_data`**:
+
 ```json
 {
   "company": "saorafael",
@@ -660,49 +668,51 @@ erDiagram
 
 #### `saorafael_clients`
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | uuid | PK |
-| `razao_social` | text | Nome/Razão Social do cliente |
-| `cnpj_cpf` | text | Documento (CNPJ ou CPF) — índice único quando preenchido |
-| `inscricao_estadual` | text | IE (opcional) |
-| `telefone` | text | Telefone de contato |
-| `email` | text | E-mail do cliente |
-| `cidade` | text | Cidade |
-| `estado` | text | UF (sigla 2 letras) |
-| `cep` | text | CEP |
-| `endereco` | text | Endereço completo |
-| `local_instalacao` | text | Município de instalação (usado para ICMS) |
-| `contato_nome` | text | Nome do contato principal |
-| `contato_telefone` | text | Telefone do contato |
-| `contato_email` | text | E-mail do contato |
-| `dados_tecnicos` | text | Resumo técnico livre |
-| `observacoes` | text | Observações gerais |
-| `created_by` | uuid | FK → `auth.users.id` |
-| `created_at` | timestamptz | Data de cadastro |
-| `updated_at` | timestamptz | Última atualização |
+| Coluna               | Tipo        | Descrição                                                |
+| -------------------- | ----------- | -------------------------------------------------------- |
+| `id`                 | uuid        | PK                                                       |
+| `razao_social`       | text        | Nome/Razão Social do cliente                             |
+| `cnpj_cpf`           | text        | Documento (CNPJ ou CPF) — índice único quando preenchido |
+| `inscricao_estadual` | text        | IE (opcional)                                            |
+| `telefone`           | text        | Telefone de contato                                      |
+| `email`              | text        | E-mail do cliente                                        |
+| `cidade`             | text        | Cidade                                                   |
+| `estado`             | text        | UF (sigla 2 letras)                                      |
+| `cep`                | text        | CEP                                                      |
+| `endereco`           | text        | Endereço completo                                        |
+| `local_instalacao`   | text        | Município de instalação (usado para ICMS)                |
+| `contato_nome`       | text        | Nome do contato principal                                |
+| `contato_telefone`   | text        | Telefone do contato                                      |
+| `contato_email`      | text        | E-mail do contato                                        |
+| `dados_tecnicos`     | text        | Resumo técnico livre                                     |
+| `observacoes`        | text        | Observações gerais                                       |
+| `created_by`         | uuid        | FK → `auth.users.id`                                     |
+| `created_at`         | timestamptz | Data de cadastro                                         |
+| `updated_at`         | timestamptz | Última atualização                                       |
 
 **Índices**:
+
 - `idx_saorafael_clients_cnpj`: UNIQUE em `cnpj_cpf` (quando não-nulo)
 - `idx_saorafael_clients_razao_trgm`: GIN trigram para busca fuzzy por nome
 - `idx_saorafael_clients_telefone`: Busca por telefone
 
 #### `saorafael_wizard_submission`
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | bigserial | PK |
-| `session_id` | text | UNIQUE — UUID da sessão de chat/wizard |
-| `user_id` | uuid | FK → `auth.users.id` |
-| `client_id` | uuid | FK → `saorafael_clients.id` (opcional) |
-| `form_data` | jsonb | JSON completo do wizard (todas as 6 etapas) |
-| `status` | text | `submitted` \| `processing` \| `completed` \| `error` |
-| `protocol` | text | Protocolo gerado (formato `SR-YYYYMM-NNNN`) |
-| `submitted_at` | timestamptz | Data de submissão |
-| `processed_at` | timestamptz | Data de processamento/fechamento |
-| `notes` | text | Notas internas (admin) |
+| Coluna         | Tipo        | Descrição                                             |
+| -------------- | ----------- | ----------------------------------------------------- |
+| `id`           | bigserial   | PK                                                    |
+| `session_id`   | text        | UNIQUE — UUID da sessão de chat/wizard                |
+| `user_id`      | uuid        | FK → `auth.users.id`                                  |
+| `client_id`    | uuid        | FK → `saorafael_clients.id` (opcional)                |
+| `form_data`    | jsonb       | JSON completo do wizard (todas as 6 etapas)           |
+| `status`       | text        | `submitted` \| `processing` \| `completed` \| `error` |
+| `protocol`     | text        | Protocolo gerado (formato `SR-YYYYMM-NNNN`)           |
+| `submitted_at` | timestamptz | Data de submissão                                     |
+| `processed_at` | timestamptz | Data de processamento/fechamento                      |
+| `notes`        | text        | Notas internas (admin)                                |
 
 **Estrutura do `form_data`**:
+
 ```json
 {
   "step1": {
@@ -732,46 +742,48 @@ erDiagram
 
 #### `saorafael_chat_message`
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | bigserial | PK |
-| `session_id` | text | UUID da sessão de chat |
-| `user_id` | uuid | FK → `auth.users.id` (nullable por motivos históricos — ver hotfix 010) |
-| `message` | jsonb | `{type: 'human'\|'ai', content: '...'}` |
-| `created_at` | timestamptz | Timestamp da mensagem |
+| Coluna       | Tipo        | Descrição                                                               |
+| ------------ | ----------- | ----------------------------------------------------------------------- |
+| `id`         | bigserial   | PK                                                                      |
+| `session_id` | text        | UUID da sessão de chat                                                  |
+| `user_id`    | uuid        | FK → `auth.users.id` (nullable por motivos históricos — ver hotfix 010) |
+| `message`    | jsonb       | `{type: 'human'\|'ai', content: '...'}`                                 |
+| `created_at` | timestamptz | Timestamp da mensagem                                                   |
 
 **Índices**:
+
 - `idx_saorafael_chat_session`: `(session_id, created_at)` para ordenação
 - `idx_saorafael_chat_user`: `(user_id)` para filtragem por usuário
 
 #### `saorafael_documents` (Vector Store)
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | bigserial | PK |
-| `content` | text | Chunk de texto (até ~1500 chars) |
+| Coluna      | Tipo         | Descrição                                                   |
+| ----------- | ------------ | ----------------------------------------------------------- |
+| `id`        | bigserial    | PK                                                          |
+| `content`   | text         | Chunk de texto (até ~1500 chars)                            |
 | `embedding` | vector(1536) | Vetor de embeddings (Azure OpenAI `text-embedding-3-small`) |
-| `metadata` | jsonb | `{source, title, page, url, ...}` |
+| `metadata`  | jsonb        | `{source, title, page, url, ...}`                           |
 
 **Índice**:
+
 - `idx_saorafael_documents_embedding_ivfflat`: IVFFlat para busca de similaridade vetorial
 
 #### `saorafael_document_metadata`
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `title` | text | PK — título do documento (ex.: "01_manual_dimensionamento.md") |
-| `source` | text | Origem (Google Drive, local, etc.) |
-| `url` | text | URL do documento original |
-| `updated_at` | timestamptz | Última atualização/reindex |
+| Coluna       | Tipo        | Descrição                                                      |
+| ------------ | ----------- | -------------------------------------------------------------- |
+| `title`      | text        | PK — título do documento (ex.: "01_manual_dimensionamento.md") |
+| `source`     | text        | Origem (Google Drive, local, etc.)                             |
+| `url`        | text        | URL do documento original                                      |
+| `updated_at` | timestamptz | Última atualização/reindex                                     |
 
 #### `saorafael_document_rows` (Linhas estruturadas de planilhas)
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `id` | bigserial | PK |
-| `dataset_id` | text | FK → `saorafael_document_metadata.title` |
-| `row_data` | jsonb | Linha completa da planilha como JSON |
+| Coluna       | Tipo      | Descrição                                |
+| ------------ | --------- | ---------------------------------------- |
+| `id`         | bigserial | PK                                       |
+| `dataset_id` | text      | FK → `saorafael_document_metadata.title` |
+| `row_data`   | jsonb     | Linha completa da planilha como JSON     |
 
 ---
 
@@ -929,36 +941,40 @@ sequenceDiagram
 - **Markdown**: n8n `Read File` → chunks por seção `##`
 
 **Embedding**:
+
 - Azure OpenAI `text-embedding-3-small` (1536 dim) ou Google Gemini Embeddings (768 dim)
 - OpenRouter usado para resumo/normalização durante chunking
 
 **Reset completo**:
+
 ```bash
 curl -X POST https://<seu-n8n>/webhook/saorafael-reset-rag
 ```
+
 Trunca `saorafael_documents` e `saorafael_document_metadata`, depois reindexa do zero.
 
 ---
 
 ## 6. APIs / Endpoints (Webhooks n8n)
 
-| Método | Rota | Workflow | Auth | Descrição |
-|--------|------|----------|------|-----------|
-| POST | `/saorafael-AgentRag` | AgentRag (Wizard + Chat) | Bearer JWT | Agente unificado: `wizardValidation: true` → validação de step; `false` → chat livre. Retorna JSON estruturado. |
-| POST | `/saorafael-prune-history` | AgentRag | Bearer JWT | Apaga mensagens a partir de `messageId` (suporte a editar/regerar resposta). |
-| POST | `/saorafael-wizard-submit` | Wizard Submit | Bearer JWT | Persiste orçamento final. Gera protocolo `SR-YYYYMM-NNNN`. Upsert por `session_id`. |
-| GET | `/saorafael-sessions` | Chat-GET-Sessions | Bearer JWT | Lista sessões de chat do usuário com título inferido. |
-| GET | `/saorafael-history?sessionId=` | Chat-GET-History | Bearer JWT | Histórico ordenado de uma sessão. |
-| DELETE | `/saorafael-session?sessionId=` | Chat-DELETE-Session | Bearer JWT | Apaga todas as mensagens de uma sessão. |
-| POST | `/saorafael-index-drive` | RAG | — | Ingestão/reindex incremental do Google Drive no vector store. |
-| POST | `/saorafael-reset-rag` | RAG | — | Reseta o índice RAG e reindexa do zero. |
-| POST | `/saorafael-DatabaseSetup` | DatabaseSetup | — | Aplica bundle SQL (`mode: "full" \| "rag_only"`). |
-| GET | `/saorafael-chat` | Front | — | Serve o `front.html`. |
-| GET | `/saorafael_health` | AgentRag | — | Health-check do agente. |
+| Método | Rota                            | Workflow                 | Auth       | Descrição                                                                                                       |
+| ------ | ------------------------------- | ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| POST   | `/saorafael-AgentRag`           | AgentRag (Wizard + Chat) | Bearer JWT | Agente unificado: `wizardValidation: true` → validação de step; `false` → chat livre. Retorna JSON estruturado. |
+| POST   | `/saorafael-prune-history`      | AgentRag                 | Bearer JWT | Apaga mensagens a partir de `messageId` (suporte a editar/regerar resposta).                                    |
+| POST   | `/saorafael-wizard-submit`      | Wizard Submit            | Bearer JWT | Persiste orçamento final. Gera protocolo `SR-YYYYMM-NNNN`. Upsert por `session_id`.                             |
+| GET    | `/saorafael-sessions`           | Chat-GET-Sessions        | Bearer JWT | Lista sessões de chat do usuário com título inferido.                                                           |
+| GET    | `/saorafael-history?sessionId=` | Chat-GET-History         | Bearer JWT | Histórico ordenado de uma sessão.                                                                               |
+| DELETE | `/saorafael-session?sessionId=` | Chat-DELETE-Session      | Bearer JWT | Apaga todas as mensagens de uma sessão.                                                                         |
+| POST   | `/saorafael-index-drive`        | RAG                      | —          | Ingestão/reindex incremental do Google Drive no vector store.                                                   |
+| POST   | `/saorafael-reset-rag`          | RAG                      | —          | Reseta o índice RAG e reindexa do zero.                                                                         |
+| POST   | `/saorafael-DatabaseSetup`      | DatabaseSetup            | —          | Aplica bundle SQL (`mode: "full" \| "rag_only"`).                                                               |
+| GET    | `/saorafael-chat`               | Front                    | —          | Serve o `front.html`.                                                                                           |
+| GET    | `/saorafael_health`             | AgentRag                 | —          | Health-check do agente.                                                                                         |
 
 ### 6.1 Exemplo de Payload: Validação de Step
 
 **Request** (POST `/saorafael-AgentRag`):
+
 ```json
 {
   "wizardValidation": true,
@@ -992,6 +1008,7 @@ Trunca `saorafael_documents` e `saorafael_document_metadata`, depois reindexa do
 ```
 
 **Response**:
+
 ```json
 {
   "output": "## Validação da Etapa 3: Especificações Construtivas\n\n### Resumo\nDimensões modulares ✅ | Espessura precisa correção 🟡\n\n### Análise Detalhada\n- 🟢 **comprimento/largura/altura**: Dimensões válidas na grade modular (3.36m = 8 módulos, 2.24m = 4 módulos, 2.50m = 10 incrementos de 0.05m)\n- 🟡 **espessura_painel**: 100mm é tecnicamente viável para -18°C mas ABAIXO DO RECOMENDADO. O manual especifica mínimo 150mm PU para congelamento. Com 100mm há risco de:\n  - Condensação externa (geada na parede)\n  - Consumo energético 20-30% maior\n  - Perda de produto em caso de falha do compressor\n\n**Recomendação forte**: 150mm PU (ou 125mm PIR se orçamento permitir). Só manter 100mm se cliente aceitar termo de responsabilidade.\n\n### Cruzamento com Etapas Anteriores\n- Step 1 → Step 3: tipo_produto = Walk In Freezer ✅ coerente com temp -18°C\n- Step 6 (previsto): Sistema de refrigeração para -18°C exigirá compressor semi-hermético ou scroll\n\n### Conclusão\n✅ **Pode prosseguir**, mas ajustar espessura para 150mm antes do fechamento comercial reduzirá risco de reclamação pós-venda.",
@@ -1014,11 +1031,31 @@ Trunca `saorafael_documents` e `saorafael_document_metadata`, depois reindexa do
     "score": 32,
     "label": "Projeto Padrão",
     "factors": [
-      { "factor": "walk_in_freezer", "impact": "+10", "reason": "Equipamento de linha" },
-      { "factor": "dimensoes_modulares", "impact": "+5", "reason": "Dimensões padrão, não customizado" },
-      { "factor": "temp_congelamento", "impact": "+10", "reason": "Temperatura -18°C (operação padrão)" },
-      { "factor": "1_compartimento", "impact": "+0", "reason": "Compartimento único" },
-      { "factor": "compressor_hermético", "impact": "+7", "reason": "Sistema simples" }
+      {
+        "factor": "walk_in_freezer",
+        "impact": "+10",
+        "reason": "Equipamento de linha"
+      },
+      {
+        "factor": "dimensoes_modulares",
+        "impact": "+5",
+        "reason": "Dimensões padrão, não customizado"
+      },
+      {
+        "factor": "temp_congelamento",
+        "impact": "+10",
+        "reason": "Temperatura -18°C (operação padrão)"
+      },
+      {
+        "factor": "1_compartimento",
+        "impact": "+0",
+        "reason": "Compartimento único"
+      },
+      {
+        "factor": "compressor_hermético",
+        "impact": "+7",
+        "reason": "Sistema simples"
+      }
     ],
     "engineering_review_required": false,
     "recommendation": "Projeto de complexidade padrão. Representante pode fechar sozinho. Prazo de resposta: 2-3 dias úteis. Ajustar espessura para 150mm antes de enviar proposta ao cliente."
@@ -1032,15 +1069,16 @@ Trunca `saorafael_documents` e `saorafael_document_metadata`, depois reindexa do
 
 ### 7.1 Gestão de Usuários (Admin)
 
-| RPC | Parâmetros | Retorno | Descrição |
-|-----|-----------|---------|-----------|
-| `saorafael_create_user` | `p_email`, `p_password`, `p_company`, `p_role`, `p_full_name` | `uuid` | Cria usuário via SQL no `auth.users`. Admin only. |
-| `saorafael_update_user` | `p_user_id`, `p_company`, `p_role`, `p_full_name` | `void` | Atualiza `raw_user_meta_data`. Admin only. |
-| `saorafael_delete_user` | `p_user_id` | `void` | Apaga usuário e dependências. Admin only. |
-| `saorafael_list_users` | — | `table(id, email, company, role, full_name)` | Lista todos os usuários. Admin only. |
-| `saorafael_self_update_name` | `p_full_name` | `void` | Usuário atualiza próprio nome. Authenticated. |
+| RPC                          | Parâmetros                                                    | Retorno                                      | Descrição                                         |
+| ---------------------------- | ------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------- |
+| `saorafael_create_user`      | `p_email`, `p_password`, `p_company`, `p_role`, `p_full_name` | `uuid`                                       | Cria usuário via SQL no `auth.users`. Admin only. |
+| `saorafael_update_user`      | `p_user_id`, `p_company`, `p_role`, `p_full_name`             | `void`                                       | Atualiza `raw_user_meta_data`. Admin only.        |
+| `saorafael_delete_user`      | `p_user_id`                                                   | `void`                                       | Apaga usuário e dependências. Admin only.         |
+| `saorafael_list_users`       | —                                                             | `table(id, email, company, role, full_name)` | Lista todos os usuários. Admin only.              |
+| `saorafael_self_update_name` | `p_full_name`                                                 | `void`                                       | Usuário atualiza próprio nome. Authenticated.     |
 
 **Implementação de `saorafael_create_user`** (trecho):
+
 ```sql
 CREATE OR REPLACE FUNCTION saorafael_create_user(
   p_email TEXT,
@@ -1093,25 +1131,25 @@ $$;
 
 ### 7.2 Gestão de Clientes
 
-| RPC | Parâmetros | Retorno | Descrição |
-|-----|-----------|---------|-----------|
-| `saorafael_search_clients` | `p_query` | `table(id, razao_social, cnpj_cpf, telefone, email, cidade, estado, total_orcamentos, ultimo_orcamento)` | Busca fuzzy de clientes (CNPJ, razão, telefone). Usa trigram (pg_trgm). |
-| `saorafael_client_detail` | `p_client_id` | `row(todas as colunas)` | Detalhes completos de um cliente. |
-| `saorafael_client_submissions` | `p_client_id` | `table(protocol, tipo_produto, submitted_at, status, ...)` | Orçamentos de um cliente. |
-| `saorafael_upsert_client` | `p_id`, `p_razao_social`, ... | `uuid` | Cria ou atualiza cliente. Authenticated. |
-| `saorafael_delete_client` | `p_client_id` | `void` | Apaga cliente + orçamentos vinculados. Admin only. |
-| `saorafael_delete_submission_smart` | `p_id` | `void` | Apaga orçamento; se cliente fica órfão, apaga junto. Admin only. |
+| RPC                                 | Parâmetros                    | Retorno                                                                                                  | Descrição                                                               |
+| ----------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `saorafael_search_clients`          | `p_query`                     | `table(id, razao_social, cnpj_cpf, telefone, email, cidade, estado, total_orcamentos, ultimo_orcamento)` | Busca fuzzy de clientes (CNPJ, razão, telefone). Usa trigram (pg_trgm). |
+| `saorafael_client_detail`           | `p_client_id`                 | `row(todas as colunas)`                                                                                  | Detalhes completos de um cliente.                                       |
+| `saorafael_client_submissions`      | `p_client_id`                 | `table(protocol, tipo_produto, submitted_at, status, ...)`                                               | Orçamentos de um cliente.                                               |
+| `saorafael_upsert_client`           | `p_id`, `p_razao_social`, ... | `uuid`                                                                                                   | Cria ou atualiza cliente. Authenticated.                                |
+| `saorafael_delete_client`           | `p_client_id`                 | `void`                                                                                                   | Apaga cliente + orçamentos vinculados. Admin only.                      |
+| `saorafael_delete_submission_smart` | `p_id`                        | `void`                                                                                                   | Apaga orçamento; se cliente fica órfão, apaga junto. Admin only.        |
 
 ---
 
 ### 7.3 Gestão de Sessões de Chat
 
-| RPC | Parâmetros | Retorno | Descrição |
-|-----|-----------|---------|-----------|
-| `saorafael_list_sessions` | — | `table(session_id, data_inicio, data_ultimo, total_mensagens, titulo)` | Usa view `saorafael_chat_sessions`. Authenticated. |
-| `saorafael_get_history` | `p_session_id` | `table(id, message, created_at)` | Mensagens ordenadas de uma sessão. Authenticated. |
-| `saorafael_delete_session` | `p_session_id` | `integer` | Apaga mensagens de uma sessão (retorna contagem). Authenticated. |
-| `saorafael_prune_from_message` | `p_message_id` | `integer` | Apaga mensagens a partir de um `id` (usado para "editar" conversa). Authenticated. |
+| RPC                            | Parâmetros     | Retorno                                                                | Descrição                                                                          |
+| ------------------------------ | -------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `saorafael_list_sessions`      | —              | `table(session_id, data_inicio, data_ultimo, total_mensagens, titulo)` | Usa view `saorafael_chat_sessions`. Authenticated.                                 |
+| `saorafael_get_history`        | `p_session_id` | `table(id, message, created_at)`                                       | Mensagens ordenadas de uma sessão. Authenticated.                                  |
+| `saorafael_delete_session`     | `p_session_id` | `integer`                                                              | Apaga mensagens de uma sessão (retorna contagem). Authenticated.                   |
+| `saorafael_prune_from_message` | `p_message_id` | `integer`                                                              | Apaga mensagens a partir de um `id` (usado para "editar" conversa). Authenticated. |
 
 ---
 
@@ -1122,15 +1160,18 @@ $$;
 **Endpoint**: `https://<instance>.openai.azure.com/openai/deployments/<deployment>/chat/completions?api-version=2024-02-01`
 
 **Credenciais** (armazenadas no n8n):
+
 - API Key (header `api-key`)
 - Nome do deployment (ex.: `gpt-5.4-mini`, `text-embedding-3-small`)
 
 **Usos**:
+
 - **Chat Agent** (LangChain): responde perguntas do assistente
 - **Wizard Validation Agent**: valida etapas do wizard e retorna JSON estruturado
 - **Embeddings**: gera vetores de 1536 dimensões para RAG
 
 **Rate Limits**:
+
 - Tokens por minuto: depende do tier contratado
 - Requisições simultâneas: máximo configurado no n8n
 
@@ -1143,6 +1184,7 @@ $$;
 **Credenciais**: API Key (header `x-goog-api-key`)
 
 **Uso**:
+
 - Pipeline de ingestão RAG (alternativa/complemento ao Azure Embeddings)
 - Gera vetores de 768 dimensões
 
@@ -1155,6 +1197,7 @@ $$;
 **Credenciais**: Bearer token
 
 **Uso**:
+
 - LLM auxiliar durante ingestão de documentos (resumo, normalização de chunks)
 - Modelos disponíveis: `anthropic/claude-3-haiku`, `openai/gpt-4o-mini`, etc.
 
@@ -1163,9 +1206,11 @@ $$;
 ### 8.4 Google Drive (OAuth2)
 
 **Scopes**:
+
 - `https://www.googleapis.com/auth/drive.readonly`
 
 **Uso**:
+
 - Leitura de documentos da pasta de RAG (PDFs, planilhas, Markdown)
 - Workflow `SãoRafael-RAG.json` lista arquivos, faz download, extrai conteúdo e indexa
 
@@ -1178,6 +1223,7 @@ $$;
 **Endpoint**: `https://servicodados.ibge.gov.br/api/v1/localidades/estados/{UF}/municipios`
 
 **Uso**:
+
 - Autocomplete de cidades no campo `local_instalacao_municipio` (step 2 do wizard)
 - Chamada direta do frontend via `fetch` (sem autenticação)
 
@@ -1188,6 +1234,7 @@ $$;
 **Endpoint**: `https://viacep.com.br/ws/{CEP}/json/`
 
 **Uso**:
+
 - Auto-preenchimento de endereço ao digitar CEP
 - Chamada direta do frontend (sem autenticação)
 
@@ -1200,12 +1247,13 @@ $$;
 Constantes no topo do `<script>`:
 
 ```javascript
-const SUPABASE_URL  = 'https://<seu-projeto>.supabase.co';
-const SUPABASE_ANON = '<sua-anon-key>';  // Chave pública
-const N8N_BASE      = 'https://<seu-n8n>/webhook';
+const SUPABASE_URL = "https://<seu-projeto>.supabase.co";
+const SUPABASE_ANON = "<sua-anon-key>"; // Chave pública
+const N8N_BASE = "https://<seu-n8n>/webhook";
 ```
 
 **Obtenção dos valores**:
+
 - `SUPABASE_URL` e `SUPABASE_ANON`: Painel Supabase → Settings → API
 - `N8N_BASE`: URL pública do n8n + `/webhook` (ex.: `https://n8n.exemplo.com/webhook`)
 
@@ -1215,15 +1263,16 @@ const N8N_BASE      = 'https://<seu-n8n>/webhook';
 
 Configuradas no painel n8n (Credentials):
 
-| Credencial | Tipo | Campos | Usado Em |
-|-----------|------|--------|----------|
-| **Supabase / Postgres** | PostgreSQL | Host, Port (5432), Database, User (`postgres`), Password (service role key) | Todos os workflows com node `Postgres` |
-| **Azure OpenAI** | HTTP Request (Custom) | Base URL, API Key, Deployment Name | AgentRag, RAG |
-| **Google Gemini** | HTTP Request (Custom) | API Key | RAG |
-| **OpenRouter** | HTTP Request (Custom) | Bearer Token | RAG |
-| **Google Drive** | OAuth2 | Client ID, Client Secret, Scopes | RAG |
+| Credencial              | Tipo                  | Campos                                                                      | Usado Em                               |
+| ----------------------- | --------------------- | --------------------------------------------------------------------------- | -------------------------------------- |
+| **Supabase / Postgres** | PostgreSQL            | Host, Port (5432), Database, User (`postgres`), Password (service role key) | Todos os workflows com node `Postgres` |
+| **Azure OpenAI**        | HTTP Request (Custom) | Base URL, API Key, Deployment Name                                          | AgentRag, RAG                          |
+| **Google Gemini**       | HTTP Request (Custom) | API Key                                                                     | RAG                                    |
+| **OpenRouter**          | HTTP Request (Custom) | Bearer Token                                                                | RAG                                    |
+| **Google Drive**        | OAuth2                | Client ID, Client Secret, Scopes                                            | RAG                                    |
 
 **Service Role Key** (Supabase):
+
 - Obtida em Supabase → Settings → API → `service_role` (secret)
 - **NUNCA expor** no frontend — apenas no n8n
 
@@ -1232,16 +1281,19 @@ Configuradas no painel n8n (Credentials):
 ### 9.3 Supabase (Extensões e Config)
 
 **Extensões obrigatórias** (rodar antes das migrations):
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS pgvector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ```
 
 **Configurações de pgvector**:
+
 - `ivfflat.probes`: 10 (padrão, bom para ~10k docs)
 - `shared_buffers`: aumentar se volume de docs > 100k
 
 **Auth Config**:
+
 - JWT expiration: 3600 (1 hora)
 - Refresh token expiration: 604800 (7 dias)
 - Email confirmação: desabilitada (usuários criados por admin já confirmados)
@@ -1298,6 +1350,7 @@ Policies com `TO service_role USING (true)` permitem que o n8n acesse tudo. O JW
 ### 10.4 Secrets Management
 
 **Checklist**:
+
 - [ ] `service_role` key NUNCA no código/frontend
 - [ ] `.env` e chaves não commitadas no Git (`.gitignore` deve incluir `.env*`)
 - [ ] Credenciais n8n exportadas sem valores sensíveis (opção "Export without credentials")
@@ -1350,12 +1403,14 @@ Policies com `TO service_role USING (true)` permitem que o n8n acesse tudo. O JW
 ### 1.2 Setup do Banco de Dados
 
 1. **Habilitar extensões** (Supabase SQL Editor):
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS pgvector;
    CREATE EXTENSION IF NOT EXISTS pg_trgm;
    ```
 
 2. **Rodar migrations em ordem**:
+
    ```bash
    cd migrations/
    psql $DATABASE_URL -f 000_ownership_guard.sql
@@ -1406,10 +1461,11 @@ Policies com `TO service_role USING (true)` permitem que o n8n acesse tudo. O JW
 ### 1.4 Setup do Frontend
 
 1. **Editar `front.html`** (linhas ~20-40):
+
    ```javascript
-   const SUPABASE_URL  = 'https://seu-projeto.supabase.co';
-   const SUPABASE_ANON = 'eyJ...';  // Anon key do Supabase
-   const N8N_BASE      = 'https://seu-n8n.dominio.com/webhook';
+   const SUPABASE_URL = "https://seu-projeto.supabase.co";
+   const SUPABASE_ANON = "eyJ..."; // Anon key do Supabase
+   const N8N_BASE = "https://seu-n8n.dominio.com/webhook";
    ```
 
 2. **Servir o HTML**:
@@ -1429,6 +1485,7 @@ Policies com `TO service_role USING (true)` permitem que o n8n acesse tudo. O JW
    - `rag_documents/03_guia_interpretacao_casos.md`
 
 2. **Disparar ingestão**:
+
    ```bash
    curl -X POST https://seu-n8n/webhook/saorafael-index-drive
    ```
@@ -1480,6 +1537,7 @@ Não há build do backend. O frontend é um HTML estático sem transpilação.
 Não há suite de testes unitários/integração. Todos os testes são manuais via UI.
 
 **Recomendação futura**:
+
 - Playwright/Cypress para testes E2E do wizard
 - Jest para testar Reality Check Engine (extração em módulo JS separado)
 
@@ -1545,6 +1603,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Dificulta onboarding de novos desenvolvedores e debugging de fluxos complexos.
 
 **Recomendação**:
+
 - Adicionar descrição textual no campo "Notes" de cada node crítico
 - Criar diagrama de fluxo (Mermaid) para cada workflow principal (AgentRag, Wizard Submit, RAG)
 - Manter `WORKFLOWS.md` no repositório descrevendo cada workflow
@@ -1558,6 +1617,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Risco de regressão ao modificar código do Reality Check Engine ou prompts de IA.
 
 **Recomendação**:
+
 - **Prioridade alta**:
   - Testes unitários do Reality Check Engine (Jest) — extrair lógica em módulo separado
   - Testes E2E críticos do wizard (Playwright): fluxo completo de criação de orçamento
@@ -1574,6 +1634,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Downtime não detectado, degradação de performance invisível.
 
 **Recomendação**:
+
 - Health-check automatizado a cada 5 minutos (ex.: UptimeRobot, Pingdom)
 - Webhook do n8n para Slack/Discord em caso de erro crítico
 - Sentry ou similar para capturar erros do frontend (JavaScript exceptions)
@@ -1592,6 +1653,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Em caso de perda de dados, tempo de recuperação indefinido.
 
 **Recomendação**:
+
 - Documentar procedimento de backup manual via `pg_dump`
 - Configurar backup automático diário no Supabase (já existe, mas testar restore)
 - Versionar exports dos workflows n8n (Git)
@@ -1606,6 +1668,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Drift entre prompt "canônico" no Git e prompt efetivo rodando no n8n.
 
 **Recomendação**:
+
 - Script de CI (GitHub Actions) que valida se prompts no Git batem com os do JSON exportado
 - Ou: n8n buscar prompts de URL/S3 ao invés de embed no JSON
 
@@ -1618,6 +1681,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 **Impacto**: Confusão sobre histórico de mudanças no banco.
 
 **Recomendação**:
+
 - Revisar histórico do Git para recuperar conteúdo da migration 008 (se existiu)
 - Adicionar `README.md` em `migrations/` explicando cada arquivo
 
@@ -1693,17 +1757,17 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 
 ## A. Glossário Técnico
 
-| Termo | Definição |
-|-------|-----------|
-| **RLS (Row-Level Security)** | Recurso do PostgreSQL que filtra rows baseado em policies. Permite que o frontend acesse o banco diretamente sem expor dados de outros usuários. |
-| **pgvector** | Extensão do PostgreSQL para armazenar e consultar vetores (embeddings). Suporta busca por similaridade usando índices IVFFlat ou HNSW. |
+| Termo                                    | Definição                                                                                                                                           |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RLS (Row-Level Security)**             | Recurso do PostgreSQL que filtra rows baseado em policies. Permite que o frontend acesse o banco diretamente sem expor dados de outros usuários.    |
+| **pgvector**                             | Extensão do PostgreSQL para armazenar e consultar vetores (embeddings). Suporta busca por similaridade usando índices IVFFlat ou HNSW.              |
 | **RAG (Retrieval-Augmented Generation)** | Padrão de IA que combina busca em base de conhecimento (retrieval) com geração de texto (LLM). Reduz alucinações e permite respostas fundamentadas. |
-| **Supabase** | Backend-as-a-Service baseado em PostgreSQL. Inclui Auth, PostgREST (API automática), Storage e Realtime. |
-| **n8n** | Ferramenta de automação (workflow orchestration) open-source. Alternativa ao Zapier/Make com self-hosting. |
-| **Reality Check Engine** | Motor de validação determinístico (JavaScript) que calcula volume, carga térmica, grade modular e detecta incoerências antes de chamar a IA. |
-| **LangChain Agent** | Framework para construir agentes de IA com ferramentas (tools). Agent decide quais tools chamar baseado na pergunta do usuário. |
-| **Service Role Key** | Chave secreta do Supabase que bypassa RLS. Usada apenas no backend (n8n) para operações administrativas. |
-| **Anon Key** | Chave pública do Supabase. Pode ser exposta no frontend. RLS garante que não vaze dados sensíveis. |
+| **Supabase**                             | Backend-as-a-Service baseado em PostgreSQL. Inclui Auth, PostgREST (API automática), Storage e Realtime.                                            |
+| **n8n**                                  | Ferramenta de automação (workflow orchestration) open-source. Alternativa ao Zapier/Make com self-hosting.                                          |
+| **Reality Check Engine**                 | Motor de validação determinístico (JavaScript) que calcula volume, carga térmica, grade modular e detecta incoerências antes de chamar a IA.        |
+| **LangChain Agent**                      | Framework para construir agentes de IA com ferramentas (tools). Agent decide quais tools chamar baseado na pergunta do usuário.                     |
+| **Service Role Key**                     | Chave secreta do Supabase que bypassa RLS. Usada apenas no backend (n8n) para operações administrativas.                                            |
+| **Anon Key**                             | Chave pública do Supabase. Pode ser exposta no frontend. RLS garante que não vaze dados sensíveis.                                                  |
 
 ---
 
@@ -1723,6 +1787,7 @@ Não há suite de testes unitários/integração. Todos os testes são manuais v
 ## C. Contatos e Suporte (inferido)
 
 Não identificado no código. Adicionar quando disponível:
+
 - Time de desenvolvimento: ?
 - Responsável técnico: ?
 - E-mail de suporte: ?
@@ -1732,12 +1797,12 @@ Não identificado no código. Adicionar quando disponível:
 
 ## D. Changelog (Histórico de Hotfixes)
 
-| Migration | Data (inferida) | Descrição |
-|-----------|-----------------|-----------|
-| 009 | ~ Mar 2026 | Fix: policy DELETE para admin em `saorafael_wizard_submission` |
-| 010 | ~ Mar 2026 | Fix: `user_id` nullable em `saorafael_chat_message` + recriação de RPCs |
-| 011 | ~ Mar 2026 | Tabela de clientes + FK + backfill de submissions existentes |
-| 012 | ~ Mar 2026 | RLS policies para `saorafael_clients` |
+| Migration | Data (inferida) | Descrição                                                               |
+| --------- | --------------- | ----------------------------------------------------------------------- |
+| 009       | ~ Mar 2026      | Fix: policy DELETE para admin em `saorafael_wizard_submission`          |
+| 010       | ~ Mar 2026      | Fix: `user_id` nullable em `saorafael_chat_message` + recriação de RPCs |
+| 011       | ~ Mar 2026      | Tabela de clientes + FK + backfill de submissions existentes            |
+| 012       | ~ Mar 2026      | RLS policies para `saorafael_clients`                                   |
 
 ---
 
