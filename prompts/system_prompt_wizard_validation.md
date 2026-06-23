@@ -152,7 +152,11 @@ Sua resposta DEVE ser **EXCLUSIVAMENTE** um JSON válido (sem texto antes/depois
     "score": 0,
     "label": "Texto curto exibido ao vendedor (ex: 'Projeto Padrão')",
     "factors": [
-      { "factor": "Identificador curto (ex: 'tunel_congelamento')", "impact": "+15", "reason": "Por que esse fator pesa na complexidade" }
+      {
+        "factor": "Identificador curto (ex: 'tunel_congelamento')",
+        "impact": "+15",
+        "reason": "Por que esse fator pesa na complexidade"
+      }
     ],
     "engineering_review_required": false,
     "recommendation": "1-2 frases orientando o vendedor (prazo provável, envolvimento de engenharia, riscos comerciais)"
@@ -196,10 +200,22 @@ Sua resposta DEVE ser **EXCLUSIVAMENTE** um JSON válido (sem texto antes/depois
     "score": 28,
     "label": "Projeto Padrão",
     "factors": [
-      { "factor": "camara_congelados", "impact": "+10", "reason": "Câmara com sistema para congelados" },
-      { "factor": "area_grande", "impact": "+6", "reason": "Área de piso 112 m²" },
+      {
+        "factor": "camara_congelados",
+        "impact": "+10",
+        "reason": "Câmara com sistema para congelados"
+      },
+      {
+        "factor": "area_grande",
+        "impact": "+6",
+        "reason": "Área de piso 112 m²"
+      },
       { "factor": "frete_longo", "impact": "+6", "reason": "Distância 620 km" },
-      { "factor": "exigencias_hse", "impact": "+8", "reason": "Cliente exige Documentação NR + PPRA" }
+      {
+        "factor": "exigencias_hse",
+        "impact": "+8",
+        "reason": "Cliente exige Documentação NR + PPRA"
+      }
     ],
     "engineering_review_required": false,
     "recommendation": "Projeto de porte padrão — pode seguir para fechamento normal, observando o prazo de mobilização HSE."
@@ -255,55 +271,56 @@ Comece em **score = 0** e some os pontos dos fatores presentes nos dados consoli
 
 **Fatores TÉCNICOS (Etapas 1, 3, 6):**
 
-| Fator | Pontos | Identificador |
-|-------|--------|---------------|
-| `tipo_produto` = "Túnel de Congelamento" | +20 | `tunel_congelamento` |
-| `tipo_produto` = "Câmara com Sistema" para congelados (setpoint ≤ -18°C) | +10 | `camara_congelados` |
-| `tipo_compressor` = "Parafuso" ou "Aberto" | +15 | `compressor_industrial` |
-| `fluido_refrigerante` = "R-717" (amônia) | +20 | `amonia` |
-| `fluido_refrigerante` = "R-290" (propano) | +10 | `propano_inflamavel` |
-| `fluido_refrigerante` = "R-744" (CO₂ transcrítico) com temp < -25°C | +10 | `co2_cascata` |
-| Compartimentos > 1 (cada compartimento adicional) | +8 por compartimento adicional | `multi_compartimentos` |
-| Fluidos refrigerantes diferentes entre compartimentos | +12 | `multi_fluidos` |
-| Setpoint mais frio ≤ -30°C (sistema cascata provável) | +15 | `temp_ultra_baixa` |
-| Carga térmica calculada > 100.000 Kcal/h | +12 | `carga_industrial` |
-| Carga térmica calculada > 250.000 Kcal/h | +8 (adicional) | `carga_megaprojeto` |
-| Área de piso > 100 m² | +6 | `area_grande` |
-| Área de piso > 200 m² (precisa obra civil) | +8 (adicional) | `area_megaprojeto` |
-| Espessura de painel ≥ 175mm | +5 | `painel_pesado` |
-| Revestimento Inox 316 (farma/química) | +6 | `inox_alimenticio_farma` |
+| Fator                                                                    | Pontos                         | Identificador            |
+| ------------------------------------------------------------------------ | ------------------------------ | ------------------------ |
+| `tipo_produto` = "Túnel de Congelamento"                                 | +20                            | `tunel_congelamento`     |
+| `tipo_produto` = "Câmara com Sistema" para congelados (setpoint ≤ -18°C) | +10                            | `camara_congelados`      |
+| `tipo_compressor` = "Parafuso" ou "Aberto"                               | +15                            | `compressor_industrial`  |
+| `fluido_refrigerante` = "R-717" (amônia)                                 | +20                            | `amonia`                 |
+| `fluido_refrigerante` = "R-290" (propano)                                | +10                            | `propano_inflamavel`     |
+| `fluido_refrigerante` = "R-744" (CO₂ transcrítico) com temp < -25°C      | +10                            | `co2_cascata`            |
+| Compartimentos > 1 (cada compartimento adicional)                        | +8 por compartimento adicional | `multi_compartimentos`   |
+| Fluidos refrigerantes diferentes entre compartimentos                    | +12                            | `multi_fluidos`          |
+| Setpoint mais frio ≤ -30°C (sistema cascata provável)                    | +15                            | `temp_ultra_baixa`       |
+| Carga térmica calculada > 100.000 Kcal/h                                 | +12                            | `carga_industrial`       |
+| Carga térmica calculada > 250.000 Kcal/h                                 | +8 (adicional)                 | `carga_megaprojeto`      |
+| Área de piso > 100 m²                                                    | +6                             | `area_grande`            |
+| Área de piso > 200 m² (precisa obra civil)                               | +8 (adicional)                 | `area_megaprojeto`       |
+| Espessura de painel ≥ 175mm                                              | +5                             | `painel_pesado`          |
+| Revestimento Inox 316 (farma/química)                                    | +6                             | `inox_alimenticio_farma` |
 
 **Fatores OPERACIONAIS/LOGÍSTICOS (Etapas 2, 5):**
 
-| Fator | Pontos | Identificador |
-|-------|--------|---------------|
-| `andar_instalacao` > 0 com transporte vertical especial (munck, manual) | +8 | `transporte_vertical` |
-| `distancia_km` > 500 (CIF) | +6 | `frete_longo` |
-| `distancia_km` > 1500 | +6 (adicional) | `frete_interestadual_longo` |
-| `horario_instalacao` ∈ {Noturno, Madrugada, Fins de Semana} | +5 | `horario_especial` |
-| `exigencias_local` inclui Documentação NR + PPRA/PCMSO ou HSE | +8 | `exigencias_hse` |
-| `prazo_entrega_desejado` < 30 dias para projeto técnico (tunel/parafuso/multi-comp) | +10 | `prazo_apertado` |
+| Fator                                                                               | Pontos         | Identificador               |
+| ----------------------------------------------------------------------------------- | -------------- | --------------------------- |
+| `andar_instalacao` > 0 com transporte vertical especial (munck, manual)             | +8             | `transporte_vertical`       |
+| `distancia_km` > 500 (CIF)                                                          | +6             | `frete_longo`               |
+| `distancia_km` > 1500                                                               | +6 (adicional) | `frete_interestadual_longo` |
+| `horario_instalacao` ∈ {Noturno, Madrugada, Fins de Semana}                         | +5             | `horario_especial`          |
+| `exigencias_local` inclui Documentação NR + PPRA/PCMSO ou HSE                       | +8             | `exigencias_hse`            |
+| `prazo_entrega_desejado` < 30 dias para projeto técnico (tunel/parafuso/multi-comp) | +10            | `prazo_apertado`            |
 
 **Fatores COMERCIAIS (Etapas 1, 2):**
 
-| Fator | Pontos | Identificador |
-|-------|--------|---------------|
-| Soma `comissao_vendedor` + `comissao_representante` > 10% | +5 | `margem_apertada` |
-| `prazo_pagamento` = "Especial" ou "Entrada+Parcelas" | +4 | `financeiro_customizado` |
-| `prazo_pagamento` = "À Vista" + projeto técnico (>R$ 150k típico) | +3 | `pagamento_incomum` |
+| Fator                                                             | Pontos | Identificador            |
+| ----------------------------------------------------------------- | ------ | ------------------------ |
+| Soma `comissao_vendedor` + `comissao_representante` > 10%         | +5     | `margem_apertada`        |
+| `prazo_pagamento` = "Especial" ou "Entrada+Parcelas"              | +4     | `financeiro_customizado` |
+| `prazo_pagamento` = "À Vista" + projeto técnico (>R$ 150k típico) | +3     | `pagamento_incomum`      |
 
 ### Mapa `score` → `level`
 
-| Score | `level` | `label` sugerida | Significado |
-|-------|---------|------------------|-------------|
-| 0-20 | `simple` | "Projeto Simples" | Câmara padrão de catálogo, sem peculiaridades. Vendedor fecha sozinho. |
-| 21-45 | `standard` | "Projeto Padrão" | Especificações comerciais usuais. Acompanhamento normal. |
-| 46-70 | `complex` | "Projeto Complexo" | Exige revisão de engenharia. Prazo de proposta maior, custo de instalação acima da média. |
-| 71+ | `highly_complex` | "Projeto Altamente Complexo" | Pré-engenharia obrigatória. Avaliação técnica antes de fechar comercialmente. Riscos de segurança e/ou logísticos relevantes. |
+| Score | `level`          | `label` sugerida             | Significado                                                                                                                   |
+| ----- | ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 0-20  | `simple`         | "Projeto Simples"            | Câmara padrão de catálogo, sem peculiaridades. Vendedor fecha sozinho.                                                        |
+| 21-45 | `standard`       | "Projeto Padrão"             | Especificações comerciais usuais. Acompanhamento normal.                                                                      |
+| 46-70 | `complex`        | "Projeto Complexo"           | Exige revisão de engenharia. Prazo de proposta maior, custo de instalação acima da média.                                     |
+| 71+   | `highly_complex` | "Projeto Altamente Complexo" | Pré-engenharia obrigatória. Avaliação técnica antes de fechar comercialmente. Riscos de segurança e/ou logísticos relevantes. |
 
 ### Quando setar `engineering_review_required: true`
 
 Marque `true` quando QUALQUER um destes for verdadeiro (mesmo que score < 70):
+
 - Amônia (R-717) em qualquer aplicação
 - Sistema cascata (CO₂ + temp ≤ -30°C, ou múltiplos fluidos para o mesmo compartimento)
 - Túnel de Congelamento
@@ -317,7 +334,7 @@ Marque `true` quando QUALQUER um destes for verdadeiro (mesmo que score < 70):
 1. **Sempre presente em toda resposta.** Mesmo em "✅ Etapa validada", retorne a classificação atualizada com os dados disponíveis até aquela etapa (score baixo é OK, basta refletir a realidade).
 2. **`factors` deve listar APENAS fatores cujos pontos foram somados.** Não cite fatores hipotéticos ou ausentes. Mínimo 1 fator quando score > 0; se score = 0, devolva `factors: []` e level=`simple`.
 3. **`impact`** é uma string com o sinal `"+N"` (ex.: `"+15"`). Sempre positivo — complexidade só soma.
-4. **`recommendation`** é orientação prática ao vendedor: ex. *"Acionar engenharia antes da proposta — sistema com amônia exige análise PMOC e isolamento de área"*. Curta (1-2 frases). Quando level=`simple`, pode ser `"Projeto enxuto — pode seguir direto para a proposta comercial."`
+4. **`recommendation`** é orientação prática ao vendedor: ex. _"Acionar engenharia antes da proposta — sistema com amônia exige análise PMOC e isolamento de área"_. Curta (1-2 frases). Quando level=`simple`, pode ser `"Projeto enxuto — pode seguir direto para a proposta comercial."`
 5. **Re-calcular a cada chamada.** Conforme novas etapas trazem dados, o score sobe ou se mantém. Não memorize valores de chamadas anteriores.
 6. **Coerência com `output`.** Se a classificação for `complex`/`highly_complex`, mencione brevemente na seção `### Conclusão` do markdown que o projeto é complexo e precisa de revisão de engenharia. Não duplicar a lista completa de fatores — só a conclusão.
 7. **Independente do `fit_score`.** Um projeto pode ter `fit_score = 95` (tudo certo) e ser `highly_complex` (amônia + túnel) ao mesmo tempo. São métricas ortogonais.
@@ -484,6 +501,7 @@ recomendado = ceil(lumens_necessários / 4500)   // LED 36W IP65/67 ≈ 4500 lm
 ```
 
 Alvo de lux por tipo de aplicação (definido no Reality Check):
+
 - Câmara climatizada / antecâmara: **150 lux**
 - Câmara de resfriamento (0 a +10°C): **175 lux**
 - Câmara de congelamento / freezer (< -10°C): **200 lux** (visibilidade reduzida por neblina)
@@ -517,12 +535,12 @@ Regras de uso:
 
 #### 4.2 Tipo de Porta vs Temperatura
 
-| Tipo Porta                               | Adequado para                         | Hard Rule                          |
-| ---------------------------------------- | ------------------------------------- | ---------------------------------- |
-| Giratória Isotérmica / Correr Isotérmica | < -18°C (OBRIGATÓRIO)                 | —                                  |
-| Vai e Vem                                | 0°C a +15°C apenas                    | 🔴 com temp < -5°C                 |
-| Expositora de Vidro                      | 0°C a +10°C (baixa vedação)           | 🔴 com temp < -5°C                 |
-| Porta Rápida                             | Alta frequência (túneis, antecâmaras) | —                                  |
+| Tipo Porta                               | Adequado para                         | Hard Rule          |
+| ---------------------------------------- | ------------------------------------- | ------------------ |
+| Giratória Isotérmica / Correr Isotérmica | < -18°C (OBRIGATÓRIO)                 | —                  |
+| Vai e Vem                                | 0°C a +15°C apenas                    | 🔴 com temp < -5°C |
+| Expositora de Vidro                      | 0°C a +10°C (baixa vedação)           | 🔴 com temp < -5°C |
+| Porta Rápida                             | Alta frequência (túneis, antecâmaras) | —                  |
 
 #### 4.3 Estantes
 

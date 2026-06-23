@@ -1597,7 +1597,9 @@
         top: 50%;
         transform: translateY(-50%);
         color: var(--text-secondary);
-        transition: transform 0.2s, color 0.2s;
+        transition:
+          transform 0.2s,
+          color 0.2s;
       }
       .creatable-chevron:hover {
         color: var(--color-primary);
@@ -1626,7 +1628,7 @@
       .creatable-search-box {
         padding: 8px 10px;
         border-bottom: 1px solid var(--border-color);
-        background: var(--bg-tertiary, rgba(0,0,0,0.02));
+        background: var(--bg-tertiary, rgba(0, 0, 0, 0.02));
       }
       .creatable-search-input {
         width: 100%;
@@ -4737,14 +4739,18 @@
           Object.entries(stepSchema.fields).forEach(
             ([fieldName, fieldSchema]) => {
               // Skip validation for hidden fields (conditional fields like prazo_pagamento_outros, transportadora_*)
-              const fieldEl = document.querySelector(`[data-field-name="${fieldName}"]`);
-              const fieldParent = fieldEl?.closest('.form-group');
-              const isHidden = fieldParent && window.getComputedStyle(fieldParent).display === 'none';
-              
+              const fieldEl = document.querySelector(
+                `[data-field-name="${fieldName}"]`,
+              );
+              const fieldParent = fieldEl?.closest(".form-group");
+              const isHidden =
+                fieldParent &&
+                window.getComputedStyle(fieldParent).display === "none";
+
               if (isHidden) {
                 return; // Skip validation for hidden fields
               }
-              
+
               const value = formData[stepKey][fieldName];
               const fieldErrors = validateField(fieldSchema, value, fieldName);
               if (fieldErrors.length > 0) {
@@ -6857,7 +6863,7 @@
             let inputType = "text";
             if (field.type === "tel") inputType = "tel";
             if (field.type === "email") inputType = "email";
-            
+
             html += `<input type="${inputType}" class="form-input${hasError ? " error" : ""}" 
             ${dataAttr} value="${escapeAttr(value)}" 
             placeholder="${field.patternMsg || ""}" />`;
@@ -7233,7 +7239,9 @@
         ];
 
         dims.forEach(({ name, val, extFn }) => {
-          const fieldGroup = panel.querySelector(`[data-field-name="${name}"]`)?.closest(".form-group");
+          const fieldGroup = panel
+            .querySelector(`[data-field-name="${name}"]`)
+            ?.closest(".form-group");
           if (!fieldGroup) return;
 
           let hintEl = fieldGroup.querySelector(`#extHint_${name}`);
@@ -7241,7 +7249,8 @@
             hintEl = document.createElement("span");
             hintEl.id = `extHint_${name}`;
             hintEl.className = "field-hint";
-            hintEl.style.cssText = "color:var(--color-info);font-style:normal;font-weight:500;margin-left:8px;";
+            hintEl.style.cssText =
+              "color:var(--color-info);font-style:normal;font-weight:500;margin-left:8px;";
             fieldGroup.appendChild(hintEl);
           }
 
@@ -7395,8 +7404,8 @@
                 const selectedValue = opt.getAttribute("data-value");
                 inputEl.value = selectedValue;
                 // Dispatch change event to notify other listeners (e.g. toggleTransportadoraFields)
-                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+                inputEl.dispatchEvent(new Event("input", { bubbles: true }));
                 updateValue();
                 dropdown.classList.remove("open");
                 // Update selected state
@@ -7892,34 +7901,51 @@
           const telefoneContainer = panel.querySelector(
             '[data-field-name="contato_telefone"]',
           );
-          
+
           // TRANSPORTADORA conditional fields (T15)
           const exigenciaContainer = panel.querySelector(
             '[data-field-name="exigencia_faturamento"]',
           );
-          const transp_nome = panel.querySelector('[data-field-name="transportadora_nome"]');
-          const transp_tel = panel.querySelector('[data-field-name="transportadora_telefone"]');
-          const transp_email = panel.querySelector('[data-field-name="transportadora_email"]');
-          
+          const transp_nome = panel.querySelector(
+            '[data-field-name="transportadora_nome"]',
+          );
+          const transp_tel = panel.querySelector(
+            '[data-field-name="transportadora_telefone"]',
+          );
+          const transp_email = panel.querySelector(
+            '[data-field-name="transportadora_email"]',
+          );
+
           if (exigenciaContainer && transp_nome && transp_tel && transp_email) {
-            const exigenciaInput = exigenciaContainer.querySelector(".creatable-input");
+            const exigenciaInput =
+              exigenciaContainer.querySelector(".creatable-input");
             const toggleTransportadoraFields = () => {
               const exigVal = exigenciaInput.value;
-              const showTransp = exigVal === "Transportadora indicada pelo cliente";
-              
-              [transp_nome, transp_tel, transp_email].forEach(container => {
+              const showTransp =
+                exigVal === "Transportadora indicada pelo cliente";
+
+              [transp_nome, transp_tel, transp_email].forEach((container) => {
                 const parent = container.closest(".form-group");
                 if (parent) {
                   parent.style.display = showTransp ? "block" : "none";
                 }
               });
-              
+
               // Clear values when hidden
               if (!showTransp) {
-                const nomeInput = transp_nome.tagName === "INPUT" ? transp_nome : transp_nome.querySelector("input");
-                const telInput = transp_tel.tagName === "INPUT" ? transp_tel : transp_tel.querySelector("input");
-                const emailInput = transp_email.tagName === "INPUT" ? transp_email : transp_email.querySelector("input");
-                
+                const nomeInput =
+                  transp_nome.tagName === "INPUT"
+                    ? transp_nome
+                    : transp_nome.querySelector("input");
+                const telInput =
+                  transp_tel.tagName === "INPUT"
+                    ? transp_tel
+                    : transp_tel.querySelector("input");
+                const emailInput =
+                  transp_email.tagName === "INPUT"
+                    ? transp_email
+                    : transp_email.querySelector("input");
+
                 if (nomeInput) {
                   nomeInput.value = "";
                   formData[stepKey]["transportadora_nome"] = "";
@@ -7935,10 +7961,16 @@
                 saveToStorage();
               }
             };
-            
+
             // Listen to change events
-            exigenciaInput.addEventListener("input", toggleTransportadoraFields);
-            exigenciaInput.addEventListener("change", toggleTransportadoraFields);
+            exigenciaInput.addEventListener(
+              "input",
+              toggleTransportadoraFields,
+            );
+            exigenciaInput.addEventListener(
+              "change",
+              toggleTransportadoraFields,
+            );
             // Initial state on render
             toggleTransportadoraFields();
           }
@@ -7965,9 +7997,11 @@
               }
             }
           }
-          
+
           // TRANSPORTADORA_TELEFONE international phone mask (T15)
-          const transpTelContainer = panel.querySelector('[data-field-name="transportadora_telefone"]');
+          const transpTelContainer = panel.querySelector(
+            '[data-field-name="transportadora_telefone"]',
+          );
           if (transpTelContainer) {
             const transpTelInput =
               transpTelContainer.tagName === "INPUT"
@@ -8269,9 +8303,7 @@
       function filterOptions(container) {
         // v2: read from search input, not from main input
         const searchInput = container.querySelector(".creatable-search-input");
-        const val = searchInput
-          ? searchInput.value.toLowerCase().trim()
-          : "";
+        const val = searchInput ? searchInput.value.toLowerCase().trim() : "";
         container.querySelectorAll(".creatable-option").forEach((opt) => {
           const text = (opt.getAttribute("data-value") || "").toLowerCase();
           if (!val || text.includes(val)) {
@@ -8530,7 +8562,7 @@
         if (currentStep < totalSteps) {
           // Check for third-party mentions in observations (non-blocking alert)
           checkThirdPartyMentions(currentStep);
-          
+
           currentStep++;
           renderCurrentStep();
           scrollWizardTop();
@@ -8539,7 +8571,13 @@
       }
 
       function checkThirdPartyMentions(stepNum) {
-        const keywords = ["cotar", "cotaç", "plataforma", "terceiro", "concorr"];
+        const keywords = [
+          "cotar",
+          "cotaç",
+          "plataforma",
+          "terceiro",
+          "concorr",
+        ];
         const stepData = formData[`step${stepNum}`] || {};
         const observacoes = [
           stepData.observacoes_comerciais,
@@ -8548,14 +8586,14 @@
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        
-        if (keywords.some(kw => observacoes.includes(kw))) {
+
+        if (keywords.some((kw) => observacoes.includes(kw))) {
           setTimeout(() => {
             addChatMessage(
               "⚠️ **Atenção**: Detectamos menção a cotação/plataforma/terceiro/concorrente nas observações. " +
-              "Lembre-se de que ferramentas de terceiros podem ser usadas **apenas internamente** para " +
-              "dimensionamento e consultas. Jamais exponha ao cliente ou mencione no orçamento oficial.",
-              "system"
+                "Lembre-se de que ferramentas de terceiros podem ser usadas **apenas internamente** para " +
+                "dimensionamento e consultas. Jamais exponha ao cliente ou mencione no orçamento oficial.",
+              "system",
             );
           }, 300);
         }
@@ -9201,7 +9239,8 @@
         // Formata o resto como (DD) NNNNN-NNNN (Brasil) ou similar
         if (rest.length === 0) return ddi + " ";
         if (rest.length <= 2) return `${ddi} (${rest}`;
-        if (rest.length <= 7) return `${ddi} (${rest.slice(0, 2)}) ${rest.slice(2)}`;
+        if (rest.length <= 7)
+          return `${ddi} (${rest.slice(0, 2)}) ${rest.slice(2)}`;
         // 10-11 dígitos = (DD) NNNNN-NNNN ou (DD) NNNN-NNNN
         const ddd = rest.slice(0, 2);
         const firstPart = rest.slice(2, rest.length - 4);
@@ -14759,7 +14798,9 @@
         const t = equip.temp;
         const allowedWalls = _perimeterWallsForCompartment(comp, snap);
         const internalWalls = _sharedWallsForCompartment(comp, comps);
-        const allWallKeys = allowedWalls.concat(internalWalls.map((w) => w.key));
+        const allWallKeys = allowedWalls.concat(
+          internalWalls.map((w) => w.key),
+        );
         const preset = opts.presetKey ? PORTA_PRESETS[opts.presetKey] : null;
 
         // Selected internal wall (edit mode) — matched by destino compartment
@@ -14822,10 +14863,7 @@
         // Internal door → the shared overlap; external door → the compartment side.
         function _segLenForState() {
           if (state.internalWall) {
-            return Math.max(
-              0,
-              state.internalWall.to - state.internalWall.from,
-            );
+            return Math.max(0, state.internalWall.to - state.internalWall.from);
           }
           const wallId = (state.parede || "").toLowerCase();
           return wallId.includes("norte") ||
@@ -17985,10 +18023,26 @@
           if (yTo - yFrom > tol) {
             if (Math.abs(comp.x1 - o.x0) < tol && !seen.has(o.name)) {
               seen.add(o.name);
-              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "right", orientation: "vertical", pos: comp.x1, from: yFrom, to: yTo });
+              out.push({
+                key: "Divisória → " + o.name,
+                neighbor: o.name,
+                side: "right",
+                orientation: "vertical",
+                pos: comp.x1,
+                from: yFrom,
+                to: yTo,
+              });
             } else if (Math.abs(comp.x0 - o.x1) < tol && !seen.has(o.name)) {
               seen.add(o.name);
-              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "left", orientation: "vertical", pos: comp.x0, from: yFrom, to: yTo });
+              out.push({
+                key: "Divisória → " + o.name,
+                neighbor: o.name,
+                side: "left",
+                orientation: "vertical",
+                pos: comp.x0,
+                from: yFrom,
+                to: yTo,
+              });
             }
           }
           // Horizontal shared wall (constant y) — neighbour above/below
@@ -17997,10 +18051,26 @@
           if (xTo - xFrom > tol) {
             if (Math.abs(comp.y1 - o.y0) < tol && !seen.has(o.name)) {
               seen.add(o.name);
-              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "bottom", orientation: "horizontal", pos: comp.y1, from: xFrom, to: xTo });
+              out.push({
+                key: "Divisória → " + o.name,
+                neighbor: o.name,
+                side: "bottom",
+                orientation: "horizontal",
+                pos: comp.y1,
+                from: xFrom,
+                to: xTo,
+              });
             } else if (Math.abs(comp.y0 - o.y1) < tol && !seen.has(o.name)) {
               seen.add(o.name);
-              out.push({ key: "Divisória → " + o.name, neighbor: o.name, side: "top", orientation: "horizontal", pos: comp.y0, from: xFrom, to: xTo });
+              out.push({
+                key: "Divisória → " + o.name,
+                neighbor: o.name,
+                side: "top",
+                orientation: "horizontal",
+                pos: comp.y0,
+                from: xFrom,
+                to: xTo,
+              });
             }
           }
         });
@@ -22045,7 +22115,9 @@
           segmento_critico: document.getElementById("cfgCritico").checked,
           observacoes: document.getElementById("cfgObs").value || "",
           qtd_luminarias: parseInt(lumVal),
-          espessura_piso_isolado_mm: espessuraPiso ? parseInt(espessuraPiso) : null,
+          espessura_piso_isolado_mm: espessuraPiso
+            ? parseInt(espessuraPiso)
+            : null,
         };
         rcSaveCompartmentsConfig(cfg);
         if (overlay) overlay.remove();
