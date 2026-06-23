@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor U as Representante
+    participant FE as Frontend
+    participant N as n8n / AgentRag
+    participant LC as LangChain Agent
+    participant VS as pgvector (RAG)
+    participant SB as Supabase
+    participant AZ as Azure OpenAI
+
+    U->>FE: "Qual espessura para freezer -20°C?"
+    FE->>SB: INSERT chat_message (user)
+    FE->>N: POST /saorafael-AgentRag
+    N->>LC: Inicia Agent
+    LC->>VS: similarity_search("espessura freezer -20")
+    VS-->>LC: chunks relevantes (manual dimensionamento)
+    LC->>AZ: gpt-5.4-mini (contexto RAG + pergunta)
+    AZ-->>LC: "Mínimo 150mm PU ou 125mm PIR"
+    LC->>SB: INSERT chat_message (AI)
+    LC-->>N: resposta
+    N-->>FE: JSON
+    FE-->>U: render Markdown

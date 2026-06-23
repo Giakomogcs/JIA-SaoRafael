@@ -1,0 +1,70 @@
+erDiagram
+  AUTH_USERS ||--o{ SAORAFAEL_CHAT_MESSAGE        : "escreve"
+  AUTH_USERS ||--o{ SAORAFAEL_WIZARD_SUBMISSION   : "submete"
+  AUTH_USERS ||--o{ SAORAFAEL_CLIENTS             : "cadastra"
+  SAORAFAEL_CLIENTS ||--o{ SAORAFAEL_WIZARD_SUBMISSION : "tem orçamentos"
+  SAORAFAEL_DOCUMENT_METADATA ||--o{ SAORAFAEL_DOCUMENTS      : "1:N chunks"
+  SAORAFAEL_DOCUMENT_METADATA ||--o{ SAORAFAEL_DOCUMENT_ROWS  : "1:N linhas"
+
+  AUTH_USERS {
+    uuid id PK
+    text email
+    jsonb raw_user_meta_data
+  }
+
+  SAORAFAEL_CLIENTS {
+    uuid   id PK
+    text   razao_social
+    text   cnpj_cpf
+    text   telefone
+    text   email
+    text   cidade
+    text   estado
+    text   cep
+    text   endereco
+    text   contato_nome
+    uuid   created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  SAORAFAEL_WIZARD_SUBMISSION {
+    bigserial   id PK
+    text        session_id UK
+    uuid        user_id FK
+    uuid        client_id FK
+    jsonb       form_data
+    text        status
+    text        protocol
+    timestamptz submitted_at
+    timestamptz processed_at
+    text        notes
+  }
+
+  SAORAFAEL_CHAT_MESSAGE {
+    bigserial   id PK
+    text        session_id
+    uuid        user_id FK
+    jsonb       message
+    timestamptz created_at
+  }
+
+  SAORAFAEL_DOCUMENTS {
+    bigserial id PK
+    text      content
+    vector    embedding
+    jsonb     metadata
+  }
+
+  SAORAFAEL_DOCUMENT_METADATA {
+    text title PK
+    text source
+    text url
+    timestamptz updated_at
+  }
+
+  SAORAFAEL_DOCUMENT_ROWS {
+    bigserial id PK
+    text      dataset_id FK
+    jsonb     row_data
+  }

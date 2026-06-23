@@ -1,0 +1,11 @@
+flowchart TD
+    A[Admin faz login] --> B[Painel Admin visível]
+    B --> C[Lista usuários existentes]
+    C --> D[Clica "Criar Novo Usuário"]
+    D --> E[Preenche email, senha, nome, empresa, role]
+    E --> F[Chama RPC saorafael_create_user]
+    F --> G{Sucesso?}
+    G -->|Sim| H[Usuário criado no Supabase Auth]
+    H --> I[raw_user_meta_data preenchido]
+    I --> J[Notificação de sucesso]
+    G -->|Não| K[Erro exibido: email já existe]

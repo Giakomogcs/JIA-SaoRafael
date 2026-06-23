@@ -1,0 +1,23 @@
+C4Context
+  title São Rafael — Contexto
+
+  Person(rep, "Representante Comercial", "Monta orçamentos e consulta o assistente")
+  Person(admin, "Administrador", "Gerencia usuários, orçamentos e clientes")
+
+  System(saorafael, "São Rafael", "Wizard de orçamentos + Assistente IA + CRM leve")
+
+  System_Ext(azure, "Azure OpenAI", "gpt-5.4-mini + text-embedding-3-small")
+  System_Ext(gemini, "Google Gemini", "Embeddings para RAG")
+  System_Ext(openrouter, "OpenRouter", "LLM auxiliar na ingestão RAG")
+  System_Ext(gdrive, "Google Drive", "Repositório de documentos para o RAG")
+  System_Ext(ibge, "API IBGE", "Listagem de cidades / UF")
+  System_Ext(viacep, "ViaCEP", "Lookup de endereço por CEP")
+
+  Rel(rep, saorafael, "Usa via", "HTTPS / Navegador")
+  Rel(admin, saorafael, "Administra via", "HTTPS / Navegador")
+  Rel(saorafael, azure, "Chama LLM e embeddings", "REST")
+  Rel(saorafael, gemini, "Embeddings (ingest)", "REST")
+  Rel(saorafael, openrouter, "Resumo na ingest", "REST")
+  Rel(saorafael, gdrive, "Lê documentos", "OAuth2")
+  Rel(saorafael, ibge, "Consulta cidades", "REST")
+  Rel(saorafael, viacep, "Consulta CEP", "REST")

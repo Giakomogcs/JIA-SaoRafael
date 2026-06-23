@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor U as Representante
+  participant FE as front.html
+  participant SB as Supabase (RLS)
+  participant N as n8n / AgentRag
+  participant AZ as Azure OpenAI
+  participant W as n8n / Wizard Submit
+
+  U->>FE: Inicia wizard
+  FE->>SB: saorafael_search_clients(query)
+  SB-->>FE: Cliente existente (ou null)
+  U->>FE: Preenche step N
+  FE->>FE: Reality Check (JS local)
+  FE->>N: POST /saorafael-AgentRag (wizardValidation=true)
+  N->>AZ: gpt-5.4-mini + RAG context
+  AZ-->>N: JSON estruturado<br/>{output, suggestions, complexity}
+  N-->>FE: Validação + sugestões
+  U->>FE: Confirma todos os steps
+  FE->>W: POST /saorafael-wizard-submit
+  W->>SB: Gera protocolo SR-YYYYMM-NNNN
+  W->>SB: UPSERT saorafael_wizard_submission
+  W-->>FE: { protocol, status: "submitted" }
+  FE-->>U: Confirmação + protocolo

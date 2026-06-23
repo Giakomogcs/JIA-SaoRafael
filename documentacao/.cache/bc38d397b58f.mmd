@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant T as Trigger (POST /saorafael-index-drive)
+  participant N as n8n / RAG
+  participant GD as Google Drive
+  participant EX as Extractors (pdf/xlsx/csv/md)
+  participant GEM as Gemini Embeddings
+  participant SB as Supabase
+  participant VS as pgvector
+
+  T->>N: dispara workflow
+  N->>GD: lista arquivos da pasta
+  GD-->>N: file metadata
+  loop por arquivo
+    N->>GD: download
+    N->>EX: extract content
+    EX-->>N: chunks + metadata
+    N->>SB: upsert saorafael_document_metadata
+    opt planilhas
+      N->>SB: upsert saorafael_document_rows
+    end
+    N->>GEM: embeddings(chunks)
+    GEM-->>N: vectors
+    N->>VS: insert saorafael_documents (chunk + vector)
+  end
+  N-->>T: status + counters

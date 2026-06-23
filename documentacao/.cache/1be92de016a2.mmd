@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor U as Usuário
+  participant FE as front.html
+  participant N as n8n / AgentRag
+  participant LC as LangChain Agent
+  participant VS as pgvector
+  participant SB as Supabase
+  participant AZ as Azure OpenAI
+
+  U->>FE: "Qual espessura para -20°C?"
+  FE->>SB: INSERT saorafael_chat_message<br/>(trigger preenche user_id)
+  FE->>N: POST /saorafael-AgentRag<br/>{ sessionId, message, wizardValidation: false }
+  N->>LC: Inicializa Agent com system prompt
+  LC->>VS: similarity_search("espessura -20")
+  VS-->>LC: chunks relevantes (manual, regras)
+  LC->>SB: tool: consulta orçamentos do user
+  SB-->>LC: rows filtrados por RLS
+  LC->>AZ: gpt-5.4-mini (contexto RAG + tools)
+  AZ-->>LC: resposta Markdown
+  LC->>SB: INSERT chat_message (AI)
+  LC-->>N: resposta
+  N-->>FE: JSON { message: '...', tools_used: [...] }
+  FE-->>U: render Markdown + highlight

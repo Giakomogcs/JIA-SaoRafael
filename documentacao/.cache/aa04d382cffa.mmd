@@ -1,0 +1,12 @@
+graph TD
+    FE[Frontend HTML] -->|supabase-js| SB[Supabase]
+    FE -->|fetch| N8N[n8n Webhooks]
+    N8N -->|pg driver| SB
+    N8N -->|REST| AZURE[Azure OpenAI]
+    N8N -->|REST| GEMINI[Google Gemini]
+    N8N -->|REST| OPENROUTER[OpenRouter]
+    N8N -->|OAuth2| GDRIVE[Google Drive]
+    N8N -->|pgvector query| PGVEC[pgvector extension]
+    SB --> PGVEC
+    FE -->|REST| IBGE[API IBGE]
+    FE -->|REST| VIACEP[ViaCEP]

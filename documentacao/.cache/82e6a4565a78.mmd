@@ -1,0 +1,22 @@
+C4Container
+  title Containers — São Rafael
+
+  Person(user, "Usuário (Rep/Admin)")
+
+  Container_Boundary(sistema, "São Rafael") {
+    Container(front, "front.html", "HTML + JS vanilla, Supabase JS, Tailwind", "Wizard, chat, painel admin, CRM")
+    Container(n8n, "n8n", "Workflows JSON", "Orquestra IA, RAG, protocolo, ingest")
+    ContainerDb(pg, "PostgreSQL", "Supabase + pgvector", "Auth, clients, orçamentos, chat, RAG")
+  }
+
+  System_Ext(azure, "Azure OpenAI")
+  System_Ext(gemini, "Gemini Embeddings")
+  System_Ext(gdrive, "Google Drive")
+
+  Rel(user, front, "Acessa", "HTTPS")
+  Rel(front, pg, "Auth + RPC + tables", "supabase-js / PostgREST")
+  Rel(front, n8n, "Webhooks", "POST/GET/DELETE JSON")
+  Rel(n8n, pg, "SQL + pgvector", "Postgres TCP")
+  Rel(n8n, azure, "Chat + Embeddings", "REST")
+  Rel(n8n, gemini, "Embeddings (RAG)", "REST")
+  Rel(n8n, gdrive, "Ingestão", "OAuth2")

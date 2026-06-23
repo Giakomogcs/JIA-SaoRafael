@@ -1,0 +1,25 @@
+flowchart TD
+    A[Representante faz login] --> B[Clica "Novo Orçamento"]
+    B --> C{Cliente já existe?}
+    C -->|Sim| D[Busca cliente por CNPJ/nome/tel]
+    D --> E[Seleciona cliente]
+    E --> F[Dados cadastrais pré-preenchidos]
+    C -->|Não| G[Cadastra novo cliente inline]
+    G --> F
+    F --> H[Wizard Etapa 1: Dados Comerciais]
+    H --> I[Seleciona tipo_produto, comissões, vendedor]
+    I --> J[IA valida etapa 1]
+    J --> K{Bloqueio?}
+    K -->|Sim| L[Corrige campos flagados]
+    L --> J
+    K -->|Não| M[Avança para Etapa 2]
+    M --> N[Etapa 2: Logística e Cadastro]
+    N --> O[... até Etapa 6]
+    O --> P[Reality Check final]
+    P --> Q{Bloqueia?}
+    Q -->|Sim| R[Corrige problemas]
+    R --> P
+    Q -->|Não| S[Submete orçamento]
+    S --> T[Sistema gera protocolo SR-YYYYMM-NNNN]
+    T --> U[Salva em saorafael_wizard_submission]
+    U --> V[Confirmação exibida ao usuário]
